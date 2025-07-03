@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../helpers/session_manager.dart';
 
 class ProfileScreen extends StatelessWidget {
   final String studentName = 'Rafiqi';
@@ -42,6 +43,14 @@ class ProfileScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
+            ElevatedButton(
+              onPressed: () async {
+                await SessionManager.logout();
+                Navigator.pushReplacementNamed(context, '/login');
+              },
+              child: Text('Logout'),
+            )
+
           ],
         ),
       ),
