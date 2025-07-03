@@ -8,12 +8,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:flutter_application_1/main.dart';
+// Update the import path to match your actual package name or use a relative path if needed.
+// For example, if your app's package name is 'fittrack', use:
+// import 'package:fittrack/main.dart';
+// Or, if main.dart is in the lib folder, you can use a relative import:
+import '../lib/main.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(FitTrackApp());
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);
