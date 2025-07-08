@@ -47,7 +47,7 @@ class BrowseScreen extends StatelessWidget {
                   icon: Icon(Icons.search, color: theme.primaryColor),
                   hintText: 'Search workouts',
                   hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.hintColor ?? Colors.grey,
+                    color: theme.hintColor,
                   ),
                   border: InputBorder.none,
                 ),
@@ -83,10 +83,20 @@ class BrowseScreen extends StatelessWidget {
                       border: Border.all(color: theme.primaryColor),
                     ),
                     alignment: Alignment.center,
-                    child: Text(
-                      categories[index],
-                      style: TextStyle(color: theme.primaryColor),
-                    ),
+                    child: InkWell(
+  onTap: () {
+    Navigator.pushNamed(
+      context,
+      '/workoutList',
+      arguments: categories[index],
+    );
+  },
+  child: Text(
+    categories[index],
+    style: TextStyle(color: theme.primaryColor),
+  ),
+),
+
                   );
                 },
               ),
@@ -126,7 +136,7 @@ class BrowseScreen extends StatelessWidget {
                     subtitle: Text(
                       workout['subtitle'] ?? '',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.hintColor ?? Colors.grey,
+                        color: theme.hintColor,
                       ),
                     ),
                     trailing: Icon(

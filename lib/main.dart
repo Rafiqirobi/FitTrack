@@ -9,6 +9,8 @@ import 'screens/main_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/workout_detail_screen.dart';
 import 'screens/browse_screen.dart';
+import 'screens/workout_list_screen.dart';
+
 
 void main() {
   runApp(FitTrackApp());
@@ -62,6 +64,7 @@ class _FitTrackAppState extends State<FitTrackApp> {
         '/profile': (context) => ProfileScreen(),
         '/workoutDetail': (context) => WorkoutDetailScreen(),
         '/browse': (context) => BrowseScreen(),
+        '/workoutList': (context) => WorkoutListScreen(),
       },
     );
   }

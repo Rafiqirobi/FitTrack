@@ -121,7 +121,7 @@ class StatsScreen extends StatelessWidget {
             Text(
               title,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.hintColor ?? Colors.grey,
+                color: theme.hintColor,
               ),
             ),
           ],
