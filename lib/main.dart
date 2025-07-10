@@ -10,6 +10,7 @@ import 'screens/main_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/workout_detail_screen.dart';
 import 'screens/browse_screen.dart';
+import 'package:FitTrack/screens/workout_timer_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();           // ✅ REQUIRED
@@ -67,6 +68,7 @@ class _FitTrackAppState extends State<FitTrackApp> {
         '/profile': (context) => ProfileScreen(),
         '/workoutDetail': (context) => WorkoutDetailScreen(),
         '/browse': (context) => BrowseScreen(),
+        '/workoutTimer': (context) => WorkoutTimerScreen(),
       },
     );
   }
