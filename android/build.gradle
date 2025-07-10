@@ -1,3 +1,15 @@
+buildscript {
+    ext.kotlin_version = '1.9.10'  // Or whatever version you're using
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.3.0' // Or your version
+        classpath 'com.google.gms:google-services:4.4.0' // ✅ Required for Firebase
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -6,9 +18,11 @@ allprojects {
 }
 
 rootProject.buildDir = "../build"
+
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }

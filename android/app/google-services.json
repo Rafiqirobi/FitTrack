@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "860760299686",
+    "project_id": "fittrack-bed04",
+    "storage_bucket": "fittrack-bed04.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:860760299686:android:76d62d652d95dfa50b7c67",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDb2ABIeoN_sttzAbzeROBE1-MwNdFu7tQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

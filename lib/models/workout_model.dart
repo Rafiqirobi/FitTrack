@@ -1,18 +1,28 @@
 class Workout {
+  String id;      // <-- Add this
   final String name;
-  final String imageAsset;
   final String description;
-  final int duration; // in 
-  final String? videoAsset;
-
-  
+  final int duration;
+  final String imageUrl;
+  final String category;
 
   Workout({
+    required this.id,
     required this.name,
-    required this.imageAsset,
     required this.description,
     required this.duration,
-    this.videoAsset,
-    
+    required this.imageUrl,
+    required this.category,
   });
+
+  factory Workout.fromMap(Map<String, dynamic> map, {String id = ''}) {
+    return Workout(
+      id: id,
+      name: map['name'] ?? '',
+      description: map['description'] ?? '',
+      duration: map['duration'] ?? 0,
+      imageUrl: map['imageUrl'] ?? '',
+      category: map['category'] ?? ''
+    );
+  }
 }

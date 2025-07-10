@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart'; 
 
 // Screens
 import 'screens/splash_screen.dart';
@@ -9,11 +10,13 @@ import 'screens/main_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/workout_detail_screen.dart';
 import 'screens/browse_screen.dart';
-import 'screens/workout_list_screen.dart';
 
-
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();           // ✅ REQUIRED
+  await Firebase.initializeApp();                      // ✅ REQUIRED
   runApp(FitTrackApp());
+
+  
 }
 
 class FitTrackApp extends StatefulWidget {
@@ -64,7 +67,6 @@ class _FitTrackAppState extends State<FitTrackApp> {
         '/profile': (context) => ProfileScreen(),
         '/workoutDetail': (context) => WorkoutDetailScreen(),
         '/browse': (context) => BrowseScreen(),
-        '/workoutList': (context) => WorkoutListScreen(),
       },
     );
   }
