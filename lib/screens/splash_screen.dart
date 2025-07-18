@@ -38,15 +38,17 @@ class _SplashScreenState extends State<SplashScreen>
     Future.delayed(const Duration(seconds: 3), () => _checkLogin());
   }
 
-  Future<void> _checkLogin() async {
-    bool isLoggedIn = await SessionManager.getLoginStatus();
-    print('🚀 SplashScreen: Navigating to ${isLoggedIn ? '/main' : '/login'}');
-    if (isLoggedIn) {
-      Navigator.pushReplacementNamed(context, '/main');
-    } else {
-      Navigator.pushReplacementNamed(context, '/login');
-    }
+ Future<void> _checkLogin() async {
+  bool isLoggedIn = await SessionManager.getLoginStatus();
+  print('🚀 SplashScreen: Navigating to ${isLoggedIn ? '/navBottomBar' : '/login'}');
+  if (!mounted) return;
+  if (isLoggedIn) {
+    Navigator.pushReplacementNamed(context, '/navBottomBar');
+  } else {
+    Navigator.pushReplacementNamed(context, '/login');
   }
+}
+
 
   @override
   void dispose() {

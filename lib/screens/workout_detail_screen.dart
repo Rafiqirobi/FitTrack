@@ -13,135 +13,42 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   static const Color accentColor = Color(0xFF00FFCC);
 
   bool _isFavorite = false;
-  bool _isExpanded = false;
 
-  Future<void> _editDifficulty(String workoutId, String currentDifficulty) async {
-    String newDifficulty = currentDifficulty;
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: cardBg,
-          title: Text(
-            'Set Difficulty',
-            style: TextStyle(color: neonGreen, fontWeight: FontWeight.bold),
-          ),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return DropdownButton<String>(
-                value: newDifficulty,
-                dropdownColor: cardBg,
-                iconEnabledColor: neonGreen,
-                isExpanded: true,
-                items: ['Easy', 'Medium', 'Hard']
-                    .map((level) => DropdownMenuItem(
-                          value: level,
-                          child: Text(level, style: TextStyle(color: Colors.white)),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => newDifficulty = value);
-                  }
-                },
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            TextButton(
-              onPressed: () async {
-                await FirebaseFirestore.instance
-                    .collection('workouts')
-                    .doc(workoutId)
-                    .update({'difficulty': newDifficulty});
-                Navigator.pop(context);
-                setState(() {});
-              },
-              child: Text('Save', style: TextStyle(color: neonGreen)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _editStepDialog(String workoutId, int? duration, int? sets, int? reps) async {
-    TextEditingController durationController =
-        TextEditingController(text: duration?.toString() ?? '');
-    TextEditingController setsController =
-        TextEditingController(text: sets?.toString() ?? '');
-    TextEditingController repsController =
-        TextEditingController(text: reps?.toString() ?? '');
+  Future<void> _editStepDialog(String workoutId, int index, Map<String, dynamic> stepData, List steps) async {
+    final durationController = TextEditingController(text: stepData['duration']?.toString() ?? '');
+    final setsController = TextEditingController(text: stepData['sets']?.toString() ?? '');
+    final repsController = TextEditingController(text: stepData['reps']?.toString() ?? '');
 
     await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: cardBg,
-          title: Text(
-            'Edit Workout Details',
-            style: TextStyle(color: neonGreen, fontWeight: FontWeight.bold),
-          ),
+          title: Text('Edit Step', style: TextStyle(color: neonGreen)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: durationController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Duration (seconds)',
-                  labelStyle: TextStyle(color: Colors.white70),
-                ),
-              ),
-              SizedBox(height: 12),
-              TextField(
-                controller: setsController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Sets',
-                  labelStyle: TextStyle(color: Colors.white70),
-                ),
-              ),
-              SizedBox(height: 12),
-              TextField(
-                controller: repsController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Reps',
-                  labelStyle: TextStyle(color: Colors.white70),
-                ),
-              ),
+              _buildInput('Duration (sec)', durationController),
+              _buildInput('Sets', setsController),
+              _buildInput('Reps', repsController),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text('Cancel', style: TextStyle(color: Colors.white70)),
             ),
             TextButton(
               onPressed: () async {
+                steps[index]['duration'] = int.tryParse(durationController.text);
+                steps[index]['sets'] = int.tryParse(setsController.text);
+                steps[index]['reps'] = int.tryParse(repsController.text);
+
                 await FirebaseFirestore.instance
                     .collection('workouts')
                     .doc(workoutId)
-                    .update({
-                  'duration': durationController.text.isNotEmpty
-                      ? int.tryParse(durationController.text)
-                      : null,
-                  'sets': setsController.text.isNotEmpty
-                      ? int.tryParse(setsController.text)
-                      : null,
-                  'reps': repsController.text.isNotEmpty
-                      ? int.tryParse(repsController.text)
-                      : null,
-                });
+                    .update({'steps': steps});
+
                 Navigator.pop(context);
                 setState(() {});
               },
@@ -153,199 +60,160 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     );
   }
 
+  Widget _buildInput(String label, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      style: TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.white70),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.white24),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: neonGreen),
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final String workoutId = ModalRoute.of(context)!.settings.arguments as String;
+    final workoutId = ModalRoute.of(context)!.settings.arguments as String;
 
     return Scaffold(
       backgroundColor: darkBg,
       appBar: AppBar(
-        title: const Text('WORKOUT DETAILS'),
+        title: Text('WORKOUT DETAILS'),
         backgroundColor: Colors.transparent,
-        elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: neonGreen),
-        titleTextStyle: const TextStyle(
-          color: neonGreen,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.5,
-        ),
+        elevation: 0,
+        iconTheme: IconThemeData(color: neonGreen),
+        titleTextStyle: TextStyle(color: neonGreen, fontSize: 18, fontWeight: FontWeight.w700),
         actions: [
           IconButton(
-            icon: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: _isFavorite ? Colors.red : neonGreen,
-            ),
-            onPressed: () {
-              setState(() {
-                _isFavorite = !_isFavorite;
-              });
-              // TODO: Save favorite state
-            },
-          ),
+            icon: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border, color: neonGreen),
+            onPressed: () => setState(() => _isFavorite = !_isFavorite),
+          )
         ],
       ),
       body: FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance.collection('workouts').doc(workoutId).get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(color: neonGreen, strokeWidth: 2.5),
-            );
+            return Center(child: CircularProgressIndicator(color: neonGreen));
           }
-
+          if (snapshot.hasError) {
+            return Center(child: Text('Error loading workout: ${snapshot.error}', style: TextStyle(color: Colors.red)));
+          }
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return Center(
-              child: Text(
-                'WORKOUT NOT FOUND',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            );
+            return Center(child: Text('Workout not found.', style: TextStyle(color: Colors.white70)));
           }
 
           final data = snapshot.data!.data() as Map<String, dynamic>;
-          final List<dynamic> steps = data['steps'] ?? [];
-          final List<dynamic> equipment = data['equipment'] ?? [];
-          final List<dynamic> targetMuscles = data['targetMuscles'] ?? [];
+          final List steps = data['steps'] ?? [];
+          final String? mainImageUrl = data['imageUrl']; // Get the main image URL
 
           return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
+            padding: EdgeInsets.all(20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (data['imageUrl'] != null && data['imageUrl'] != 'imageUrl')
+                // Main Workout Image (using Image.asset)
+                if (mainImageUrl != null && mainImageUrl.isNotEmpty)
                   Stack(
                     alignment: Alignment.center,
                     children: [
-                      Container(
-                        height: 220,
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 20),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: neonGreen.withOpacity(0.2),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            data['imageUrl'],
-                            fit: BoxFit.cover,
-                          ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset( // <--- CHANGED TO Image.asset
+                          mainImageUrl,
+                          height: 220,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 220,
+                              width: double.infinity,
+                              color: cardBg,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.image_not_supported, color: Colors.white54, size: 50),
+                                    SizedBox(height: 8),
+                                    Text('Failed to load local image', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                    Text('Check pubspec.yaml and path', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       FloatingActionButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/workoutTimer', arguments: data);
-                        },
-                        backgroundColor: neonGreen.withOpacity(0.9),
-                        child: const Icon(Icons.play_arrow, color: darkBg, size: 32),
-                      ),
+                        onPressed: () => Navigator.pushNamed(context, '/workoutTimer', arguments: data),
+                        backgroundColor: neonGreen,
+                        child: Icon(Icons.play_arrow, color: darkBg),
+                      )
                     ],
+                  )
+                else
+                  Container(
+                    height: 220,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: cardBg.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.image_not_supported, color: Colors.white54, size: 50),
+                          SizedBox(height: 8),
+                          Text('No image available', style: TextStyle(color: Colors.white54)),
+                        ],
+                      ),
+                    ),
                   ),
 
-                // Summary Card without reps/time
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cardBg.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data['name'] ?? 'Workout',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () => _editDifficulty(workoutId, data['difficulty'] ?? 'Medium'),
-                        child: _buildInfoChip(
-                          Icons.fitness_center,
-                          '${data['difficulty'] ?? 'Medium'} (Edit)',
-                        ),
-                      ),
-                    ],
-                  ),
+                SizedBox(height: 20),
+                Text(
+                  data['name'] ?? 'Workout',
+                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
                 ),
-
-                const SizedBox(height: 20),
-
-                // Quick Stats
+                SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildStatCard('Calories', '${data['calories'] ?? 120} kcal'),
-                    _buildStatCard('Focus Area', data['category'] ?? 'Full Body'),
-                    _buildStatCard('Rest Time', '${data['restTime'] ?? 30}s'),
+                    _buildStat('Calories', '${data['calories'] ?? 'N/A'} kcal'), // Using calories here
+                    _buildStat('Focus', data['category'] ?? 'Full Body'),
+                    _buildStat('Rest', '${data['restTime'] ?? 'N/A'}s'), // Using restTime here
                   ],
                 ),
-
-                const SizedBox(height: 24),
-
-                // Steps
-                const Text(
-                  'STEP-BY-STEP GUIDE',
-                  style: TextStyle(
-                    color: neonGreen,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
+                SizedBox(height: 30),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('STEP-BY-STEP GUIDE', style: TextStyle(color: neonGreen, fontWeight: FontWeight.bold)),
                 ),
-                const SizedBox(height: 12),
-
-                ...List.generate(steps.length, (index) {
-                  final step = steps[index] as Map<String, dynamic>;
-                  return _buildStepCard(
-                    workoutId,
-                    index + 1,
-                    step,
-                  );
-                }),
-
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: neonGreen,
-                      foregroundColor: darkBg,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'START WORKOUT NOW',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/workoutTimer', arguments: data);
-                    },
+                SizedBox(height: 10),
+                ...List.generate(steps.length, (i) => _buildStepCard(workoutId, i, steps[i], steps)),
+                SizedBox(height: 30),
+                ElevatedButton(
+                  onPressed: () => Navigator.pushNamed(context, '/workoutTimer', arguments: data),
+                  child: Text('START WORKOUT NOW'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: neonGreen,
+                    foregroundColor: darkBg,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                ),
+                )
               ],
             ),
           );
@@ -354,141 +222,53 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     );
   }
 
-  Widget _buildStepCard(String workoutId, int stepNumber, Map<String, dynamic> stepData) {
-    final String text = stepData['text'] ?? 'No description';
-    final int? duration = stepData['duration'];
-    final int? sets = stepData['sets'];
-    final int? reps = stepData['reps'];
+  Widget _buildStat(String label, String value) {
+    return Expanded(
+      child: Container(
+        margin: EdgeInsets.only(right: 6),
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(color: Colors.white70, fontSize: 12)),
+            SizedBox(height: 4),
+            Text(value, style: TextStyle(color: neonGreen, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepCard(String workoutId, int index, Map<String, dynamic> step, List steps) {
+    final int? duration = step['duration'];
+    final int? sets = step['sets'];
+    final int? reps = step['reps'];
 
     String subtitle = '';
-    if (duration != null) {
+    if (duration != null && duration > 0) { // Check if duration is valid
       subtitle = '$duration seconds';
-    } else if (sets != null && reps != null) {
+    } else if (sets != null && reps != null && (sets > 0 || reps > 0)) { // Check if sets/reps are valid
       subtitle = '$sets x $reps';
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {},
-          splashColor: neonGreen.withOpacity(0.1),
-          highlightColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.08),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: neonGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: neonGreen.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    stepNumber.toString(),
-                    style: const TextStyle(
-                      color: neonGreen,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        text,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 15,
-                          height: 1.4,
-                        ),
-                      ),
-                      if (subtitle.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            subtitle,
-                            style: TextStyle(
-                              color: accentColor,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.edit, color: neonGreen, size: 20),
-                  onPressed: () => _editStepDialog(workoutId, duration, sets, reps),
-                ),
-              ],
-            ),
-          ),
-        ),
+      margin: EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
-    );
-  }
-
-  Widget _buildInfoChip(IconData icon, String text) {
-    return Chip(
-      backgroundColor: cardBg,
-      avatar: Icon(icon, size: 16, color: neonGreen),
-      label: Text(
-        text,
-        style: TextStyle(color: Colors.white),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, String value) {
-    return Expanded(
-      child: Container(
-        margin: EdgeInsets.only(right: 8),
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(12),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: neonGreen.withOpacity(0.1),
+          child: Text('${index + 1}', style: TextStyle(color: neonGreen)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
-                fontSize: 12,
-              ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                color: neonGreen,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+        title: Text(step['text'] ?? 'Step', style: TextStyle(color: Colors.white)), // Using 'text' for step description
+        subtitle: subtitle.isNotEmpty ? Text(subtitle, style: TextStyle(color: accentColor)) : null,
+        trailing: IconButton(
+          icon: Icon(Icons.edit, color: neonGreen),
+          onPressed: () => _editStepDialog(workoutId, index, step, steps),
         ),
       ),
     );

@@ -1,25 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_core/firebase_core.dart'; 
-import 'utils/firebase_seed.dart';
+import 'package:firebase_core/firebase_core.dart';
+//import 'utils/firebase_seed.dart'; // Optional: Uncomment seedWorkoutData if needed
+
 // Screens
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/profile_screen.dart';
 import 'screens/workout_detail_screen.dart';
 import 'screens/browse_screen.dart';
-import 'package:FitTrack/screens/workout_timer_screen.dart';
+import 'screens/workout_timer_screen.dart';
 import 'screens/reps_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/main_screen.dart';
+import 'screens/nav_bottom_bar.dart'; // Main navigation
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();           // ✅ REQUIRED
-  await Firebase.initializeApp();                      // ✅ REQUIRED
+  WidgetsFlutterBinding.ensureInitialized();
+  //await Firebase.initializeApp();
   runApp(FitTrackApp());
-
-  
 }
 
 class FitTrackApp extends StatefulWidget {
@@ -31,15 +28,16 @@ class _FitTrackAppState extends State<FitTrackApp> {
   ThemeMode _themeMode = ThemeMode.system;
 
   @override
-void initState() {
-  super.initState();
-  _initializeApp();
-}
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
 
-Future<void> _initializeApp() async {
-  await seedWorkoutData();
-  await _loadTheme();
-}
+  Future<void> _initializeApp() async {
+    // Optional: Seed Firebase with initial workout data
+    //await seedWorkoutData();
+    await _loadTheme();
+  }
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
@@ -48,7 +46,6 @@ Future<void> _initializeApp() async {
       _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
     });
   }
-
 
   void _toggleTheme() async {
     final prefs = await SharedPreferences.getInstance();
@@ -67,14 +64,12 @@ Future<void> _initializeApp() async {
       themeMode: _themeMode,
       theme: neonLightTheme,
       darkTheme: neonDarkTheme,
-      initialRoute: '/',
+      initialRoute: '/', // Splash screen starts first
       routes: {
         '/': (context) => SplashScreen(),
         '/login': (context) => LoginScreen(),
         '/register': (context) => RegisterScreen(),
-        '/home': (context) => HomeScreen(),
-        '/main': (context) => MainScreen(onToggleTheme: _toggleTheme),
-        '/profile': (context) => ProfileScreen(),
+        '/navBottomBar': (context) => NavBottomBar(onToggleTheme: _toggleTheme),
         '/workoutDetail': (context) => WorkoutDetailScreen(),
         '/browse': (context) => BrowseScreen(),
         '/workoutTimer': (context) => WorkoutTimerScreen(),
@@ -87,15 +82,15 @@ Future<void> _initializeApp() async {
 // 🎨 Dark Theme
 final ThemeData neonDarkTheme = ThemeData(
   brightness: Brightness.dark,
-  primaryColor: Color(0xFFCCFF00),
-  scaffoldBackgroundColor: Color(0xFF121212),
-  cardColor: Color(0xFF1E1E1E),
-  iconTheme: IconThemeData(color: Color(0xFFCCFF00)),
-  floatingActionButtonTheme: FloatingActionButtonThemeData(
+  primaryColor: const Color(0xFFCCFF00),
+  scaffoldBackgroundColor: const Color(0xFF121212),
+  cardColor: const Color(0xFF1E1E1E),
+  iconTheme: const IconThemeData(color: Color(0xFFCCFF00)),
+  floatingActionButtonTheme: const FloatingActionButtonThemeData(
     backgroundColor: Color(0xFFCCFF00),
     foregroundColor: Colors.black,
   ),
-  textTheme: TextTheme(
+  textTheme: const TextTheme(
     bodyLarge: TextStyle(color: Colors.white),
     bodyMedium: TextStyle(color: Colors.white),
     titleLarge: TextStyle(
@@ -103,12 +98,12 @@ final ThemeData neonDarkTheme = ThemeData(
       fontWeight: FontWeight.bold,
     ),
   ),
-  appBarTheme: AppBarTheme(
+  appBarTheme: const AppBarTheme(
     backgroundColor: Color(0xFF121212),
     foregroundColor: Color(0xFFCCFF00),
     elevation: 0,
   ),
-  bottomNavigationBarTheme: BottomNavigationBarThemeData(
+  bottomNavigationBarTheme: const BottomNavigationBarThemeData(
     backgroundColor: Color(0xFF121212),
     selectedItemColor: Color(0xFFCCFF00),
     unselectedItemColor: Colors.grey,
@@ -118,15 +113,15 @@ final ThemeData neonDarkTheme = ThemeData(
 // 🎨 Light Theme
 final ThemeData neonLightTheme = ThemeData(
   brightness: Brightness.light,
-  primaryColor: Color(0xFFFF2CCB),
+  primaryColor: const Color(0xFFFF2CCB),
   scaffoldBackgroundColor: Colors.white,
-  cardColor: Colors.grey[100],
-  iconTheme: IconThemeData(color: Color(0xFFFF2CCB)),
-  floatingActionButtonTheme: FloatingActionButtonThemeData(
+  cardColor: Colors.grey[200],
+  iconTheme: const IconThemeData(color: Color(0xFFFF2CCB)),
+  floatingActionButtonTheme: const FloatingActionButtonThemeData(
     backgroundColor: Color(0xFFFF2CCB),
     foregroundColor: Colors.white,
   ),
-  textTheme: TextTheme(
+  textTheme: const TextTheme(
     bodyLarge: TextStyle(color: Colors.black),
     bodyMedium: TextStyle(color: Colors.black),
     titleLarge: TextStyle(
@@ -134,12 +129,12 @@ final ThemeData neonLightTheme = ThemeData(
       fontWeight: FontWeight.bold,
     ),
   ),
-  appBarTheme: AppBarTheme(
+  appBarTheme: const AppBarTheme(
     backgroundColor: Colors.white,
     foregroundColor: Color(0xFFFF2CCB),
     elevation: 0,
   ),
-  bottomNavigationBarTheme: BottomNavigationBarThemeData(
+  bottomNavigationBarTheme: const BottomNavigationBarThemeData(
     backgroundColor: Colors.white,
     selectedItemColor: Color(0xFFFF2CCB),
     unselectedItemColor: Colors.grey,

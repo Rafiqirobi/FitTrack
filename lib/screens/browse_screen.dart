@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/workout_model.dart';
+import '../models/workout_model.dart'; // Make sure this path is correct
 
 class BrowseScreen extends StatefulWidget {
   @override
@@ -8,35 +8,35 @@ class BrowseScreen extends StatefulWidget {
 }
 
 class _BrowseScreenState extends State<BrowseScreen> {
-
   List<Workout> _workouts = [];
   bool _loading = true;
   String _selectedCategory = 'All';
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
 
+  // ✅ CHANGE: Make keys lowercase to match Firestore data
   final Map<String, Map<String, dynamic>> categoryData = {
     'All': {
       'image': 'lib/assets/all.jpeg',
       'icon': Icons.all_inclusive,
     },
-    'Arms': {
+    'arms': { // Changed from 'Arms'
       'image': 'lib/assets/arm.jpeg',
       'icon': Icons.fitness_center,
     },
-    'Chest': {
-      'image': 'lib/assets/chest.jpeg',
+    'chest': { // Changed from 'Chest'
+      'image': 'lib/assets/chest', // This looks like a path, not a full .jpeg extension, check this.
       'icon': Icons.accessibility_new,
     },
-    'Abs': {
+    'abs': { // Changed from 'Abs'
       'image': 'lib/assets/abs.jpeg',
       'icon': Icons.grid_on,
     },
-    'Legs': {
+    'legs': { // Changed from 'Legs'
       'image': 'lib/assets/leg.jpeg',
       'icon': Icons.directions_run,
     },
-    'Back': {
+    'back': { // Changed from 'Back'
       'image': 'lib/assets/back.jpeg',
       'icon': Icons.airline_seat_individual_suite,
     },
@@ -51,19 +51,20 @@ class _BrowseScreenState extends State<BrowseScreen> {
   Future<void> _fetchWorkouts({String? category}) async {
     setState(() {
       _loading = true;
+      // When setting _selectedCategory, ensure it's in the correct case for display
       _selectedCategory = category ?? 'All';
     });
 
     QuerySnapshot snapshot;
-    
+
     try {
       if (category == null || category == 'All') {
         snapshot = await FirebaseFirestore.instance.collection('workouts').get();
       } else {
-        // Ensure category names match exactly (case-sensitive)
+        // The `category` variable passed here will now be lowercase, matching Firestore
         snapshot = await FirebaseFirestore.instance
             .collection('workouts')
-            .where('category', isEqualTo: category)
+            .where('category', isEqualTo: category) // This now correctly uses the lowercase category
             .get();
       }
 
@@ -73,8 +74,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
           .toList();
 
       // Animate list changes
+      // Remove all items with animation
       if (_workouts.isNotEmpty) {
-        // Remove all items with animation
         for (var i = _workouts.length - 1; i >= 0; i--) {
           final removed = _workouts.removeAt(i);
           _listKey.currentState?.removeItem(
@@ -85,6 +86,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
       }
 
       // Add new items with animation
+      // A small delay can help the animation look smoother, especially on removal
+      await Future.delayed(Duration(milliseconds: 300));
       for (var i = 0; i < newWorkouts.length; i++) {
         _workouts.insert(i, newWorkouts[i]);
         _listKey.currentState?.insertItem(i);
@@ -100,6 +103,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 
   Widget _buildRemovedItem(Workout workout, Animation<double> animation) {
+    // You might want to make this look consistent with _buildWorkoutCard if it's shown
+    // or just a simpler representation.
     return SizeTransition(
       sizeFactor: animation,
       child: Card(
@@ -115,7 +120,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     final primaryColor = theme.primaryColor;
     final backgroundColor = theme.scaffoldBackgroundColor;
     final cardColor = theme.cardColor;
@@ -157,13 +162,19 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                     itemCount: categoryData.length,
                     itemBuilder: (context, index) {
-                      final category = categoryData.keys.elementAt(index);
-                      final data = categoryData[category]!;
-                      final isSelected = _selectedCategory == category;
-                      
+                      final categoryKey = categoryData.keys.elementAt(index); // This is the lowercase key
+                      final data = categoryData[categoryKey]!;
+                      final isSelected = _selectedCategory == categoryKey; // Compare with lowercase key
+
+                      // For display, you might want to capitalize the category name
+                      String displayCategoryName = categoryKey == 'All'
+                          ? 'All'
+                          : '${categoryKey[0].toUpperCase()}${categoryKey.substring(1)}';
+
                       return GestureDetector(
                         onTap: () {
-                          _fetchWorkouts(category: category == 'All' ? null : category);
+                          // Pass the lowercase category key to _fetchWorkouts
+                          _fetchWorkouts(category: categoryKey == 'All' ? null : categoryKey);
                         },
                         child: AnimatedContainer(
                           duration: Duration(milliseconds: 300),
@@ -194,7 +205,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                category,
+                                displayCategoryName, // Use the capitalized display name
                                 style: TextStyle(
                                   color: isSelected ? (isDark ? Colors.black : Colors.white) : textColor,
                                   fontWeight: FontWeight.w600,
@@ -208,11 +219,12 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     },
                   ),
                 ),
-                
+
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   child: Text(
-                    _selectedCategory == 'All' ? 'All Workouts' : '$_selectedCategory Workouts',
+                    // Display capitalized category name for the header
+                    _selectedCategory == 'All' ? 'All Workouts' : '${_selectedCategory[0].toUpperCase()}${_selectedCategory.substring(1)} Workouts',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -220,7 +232,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     ),
                   ),
                 ),
-                
+
                 Expanded(
                   child: AnimatedList(
                     key: _listKey,
@@ -235,6 +247,24 @@ class _BrowseScreenState extends State<BrowseScreen> {
               ],
             ),
     );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    // Ensure this also works with lowercase categories from workout objects
+    switch (category.toLowerCase()) { // ✅ Keep .toLowerCase() here for robustness
+      case 'chest':
+        return Icons.fitness_center;
+      case 'arms':
+        return Icons.accessibility;
+      case 'abs':
+        return Icons.grid_on;
+      case 'legs':
+        return Icons.directions_run;
+      case 'back':
+        return Icons.airline_seat_recline_normal;
+      default:
+        return Icons.sports_gymnastics;
+    }
   }
 
   Widget _buildWorkoutCard(Workout workout, Animation<double> animation, BuildContext context) {
@@ -334,22 +364,5 @@ class _BrowseScreenState extends State<BrowseScreen> {
         ),
       ),
     );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'chest':
-        return Icons.fitness_center;
-      case 'arms':
-        return Icons.accessibility;
-      case 'abs':
-        return Icons.grid_on;
-      case 'legs':
-        return Icons.directions_run;
-      case 'back':
-        return Icons.airline_seat_recline_normal;
-      default:
-        return Icons.sports_gymnastics;
-    }
   }
 }
