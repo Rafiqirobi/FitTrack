@@ -12,6 +12,7 @@ import 'screens/browse_screen.dart';
 import 'package:FitTrack/screens/workout_timer_screen.dart';
 import 'screens/reps_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();           // ✅ REQUIRED
@@ -49,6 +50,15 @@ Future<void> _initializeApp() async {
   }
 
 
+  void _toggleTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isDark = _themeMode == ThemeMode.dark;
+    setState(() {
+      _themeMode = isDark ? ThemeMode.light : ThemeMode.dark;
+    });
+    await prefs.setBool('isDarkTheme', !isDark);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -63,6 +73,7 @@ Future<void> _initializeApp() async {
         '/login': (context) => LoginScreen(),
         '/register': (context) => RegisterScreen(),
         '/home': (context) => HomeScreen(),
+        '/main': (context) => MainScreen(onToggleTheme: _toggleTheme),
         '/profile': (context) => ProfileScreen(),
         '/workoutDetail': (context) => WorkoutDetailScreen(),
         '/browse': (context) => BrowseScreen(),

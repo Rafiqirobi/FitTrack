@@ -43,52 +43,185 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Register')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator())
-            : Form(
-                key: _formKey,
-                child: Column(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: _isLoading
+              ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextFormField(
-                      decoration: InputDecoration(labelText: 'Email'),
-                      onChanged: (val) => email = val,
-                      validator: (val) => val!.isEmpty ? 'Enter email' : null,
-                    ),
-                    SizedBox(height: 10),
-                    TextFormField(
-                      decoration: InputDecoration(labelText: 'Password'),
-                      obscureText: true,
-                      onChanged: (val) => password = val,
-                      validator: (val) =>
-                          val!.length < 6 ? 'Password too short' : null,
-                    ),
-                    SizedBox(height: 10),
-                    TextFormField(
-                      decoration: InputDecoration(labelText: 'Confirm Password'),
-                      obscureText: true,
-                      onChanged: (val) => confirmPassword = val,
-                      validator: (val) =>
-                          val!.length < 6 ? 'Confirm password' : null,
-                    ),
-                    SizedBox(height: 30),
-                    ElevatedButton(
-                      onPressed: _register,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFCCFF00),
-                        foregroundColor: Colors.black,
-                        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 32),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    // Back Button
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.arrow_back_ios),
+                          color: Theme.of(context).primaryColor,
                         ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    
+                    // Logo/Title
+                    Text(
+                      'Create Account',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                        letterSpacing: 1.5,
                       ),
-                      child: Text('Register'),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Join FitTrack today!',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 48),
+                    
+                    // Form
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          // Email Field
+                          TextFormField(
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              hintText: 'Enter your email',
+                              prefixIcon: Icon(Icons.email_outlined),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                              ),
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            onChanged: (val) => email = val,
+                            validator: (val) => val!.isEmpty ? 'Please enter your email' : null,
+                          ),
+                          SizedBox(height: 20),
+                          
+                          // Password Field
+                          TextFormField(
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              hintText: 'Enter your password',
+                              prefixIcon: Icon(Icons.lock_outline),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                              ),
+                            ),
+                            obscureText: true,
+                            onChanged: (val) => password = val,
+                            validator: (val) => val!.length < 6 ? 'Password must be at least 6 characters' : null,
+                          ),
+                          SizedBox(height: 20),
+                          
+                          // Confirm Password Field
+                          TextFormField(
+                            decoration: InputDecoration(
+                              labelText: 'Confirm Password',
+                              hintText: 'Confirm your password',
+                              prefixIcon: Icon(Icons.lock_outline),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                              ),
+                            ),
+                            obscureText: true,
+                            onChanged: (val) => confirmPassword = val,
+                            validator: (val) => val != password ? 'Passwords do not match' : null,
+                          ),
+                          SizedBox(height: 32),
+                          
+                          // Register Button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context).primaryColor,
+                                foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              onPressed: _register,
+                              child: Text(
+                                'Create Account',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 24),
+                          
+                          // Login Link
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: RichText(
+                              text: TextSpan(
+                                text: "Already have an account? ",
+                                style: TextStyle(color: Colors.grey[600]),
+                                children: [
+                                  TextSpan(
+                                    text: "Sign In",
+                                    style: TextStyle(
+                                      color: Theme.of(context).primaryColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
+        ),
       ),
     );
   }
