@@ -1,9 +1,33 @@
 import 'package:flutter/material.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   final Color neonGreen = Color(0xFFCCFF00);
   final Color darkBg = Color(0xFF121212);
   final Color cardBg = Color(0xFF1E1E1E);
+
+  bool _messageShown = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_messageShown) {
+      final message = ModalRoute.of(context)?.settings.arguments as String?;
+      if (message != null && message.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message)),
+          );
+        });
+        _messageShown = true;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +43,6 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             // Welcome header
             Text(
               'Welcome to FitTrack!',

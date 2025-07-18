@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart'; 
-
+import 'utils/firebase_seed.dart';
 // Screens
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/main_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/workout_detail_screen.dart';
 import 'screens/browse_screen.dart';
 import 'package:FitTrack/screens/workout_timer_screen.dart';
+import 'screens/reps_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();           // ✅ REQUIRED
@@ -29,10 +30,15 @@ class _FitTrackAppState extends State<FitTrackApp> {
   ThemeMode _themeMode = ThemeMode.system;
 
   @override
-  void initState() {
-    super.initState();
-    _loadTheme();
-  }
+void initState() {
+  super.initState();
+  _initializeApp();
+}
+
+Future<void> _initializeApp() async {
+  await seedWorkoutData();
+  await _loadTheme();
+}
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
@@ -42,14 +48,6 @@ class _FitTrackAppState extends State<FitTrackApp> {
     });
   }
 
-  Future<void> _toggleTheme() async {
-    final isDark = _themeMode == ThemeMode.dark ? false : true;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkTheme', isDark);
-    setState(() {
-      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,16 +57,17 @@ class _FitTrackAppState extends State<FitTrackApp> {
       themeMode: _themeMode,
       theme: neonLightTheme,
       darkTheme: neonDarkTheme,
-      initialRoute: '/',
+      initialRoute: '/home',
       routes: {
         '/': (context) => SplashScreen(),
         '/login': (context) => LoginScreen(),
         '/register': (context) => RegisterScreen(),
-        '/main': (context) => MainScreen(onToggleTheme: _toggleTheme),
+        '/home': (context) => HomeScreen(),
         '/profile': (context) => ProfileScreen(),
         '/workoutDetail': (context) => WorkoutDetailScreen(),
         '/browse': (context) => BrowseScreen(),
         '/workoutTimer': (context) => WorkoutTimerScreen(),
+        '/repsScreen': (context) => RepsScreen(),
       },
     );
   }

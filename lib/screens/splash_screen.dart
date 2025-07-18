@@ -40,6 +40,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _checkLogin() async {
     bool isLoggedIn = await SessionManager.getLoginStatus();
+    print('🚀 SplashScreen: Navigating to ${isLoggedIn ? '/main' : '/login'}');
     if (isLoggedIn) {
       Navigator.pushReplacementNamed(context, '/main');
     } else {
@@ -68,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen>
               'FitTrack'.toUpperCase(),
               style: TextStyle(
                 fontSize: 48,
-                fontFamily: 'Roboto', 
+                fontFamily: 'Roboto',
                 fontStyle: FontStyle.italic,
                 fontWeight: FontWeight.bold,
                 color: theme.primaryColor,

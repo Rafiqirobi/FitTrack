@@ -1,18 +1,35 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SessionManager {
-  static Future<void> saveLoginStatus(bool isLoggedIn) async {
+  // Save user login status and UID
+  static Future<void> saveUserSession({
+    required bool isLoggedIn,
+    required String uid,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('isLoggedIn', isLoggedIn);
+    await prefs.setBool('isLoggedIn', isLoggedIn);
+    await prefs.setString('uid', uid);
   }
 
+  // Get UID
+  static Future<String?> getUid() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('uid');
+  }
+
+  // Check if user is logged in
   static Future<bool> getLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('isLoggedIn') ?? false;
+    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    final uid = prefs.getString('uid');
+    print('🔒 getLoginStatus() -> isLoggedIn: $isLoggedIn, uid: $uid');
+    return isLoggedIn && uid != null;
   }
 
+  // Logout
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('isLoggedIn', false);
+    await prefs.setBool('isLoggedIn', false);
+    await prefs.remove('uid');
   }
 }

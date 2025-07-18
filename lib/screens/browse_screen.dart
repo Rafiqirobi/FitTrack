@@ -8,6 +8,7 @@ class BrowseScreen extends StatefulWidget {
 }
 
 class _BrowseScreenState extends State<BrowseScreen> {
+
   List<Workout> _workouts = [];
   bool _loading = true;
   String _selectedCategory = 'All';
@@ -287,12 +288,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              subtitle: Text(
-                                '${workout.duration} seconds',
-                                style: TextStyle(
-                                  color: textColor.withOpacity(0.6),
-                                ),
-                              ),
+                            
                               trailing: Icon(
                                 Icons.arrow_forward_ios,
                                 color: textColor.withOpacity(0.5),
