@@ -20,7 +20,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
       'image': 'lib/assets/all.jpeg',
       'icon': Icons.all_inclusive,
     },
-    'Arm': {
+    'Arms': {
       'image': 'lib/assets/arm.jpeg',
       'icon': Icons.fitness_center,
     },
@@ -340,7 +340,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
     switch (category.toLowerCase()) {
       case 'chest':
         return Icons.fitness_center;
-      case 'arm':
+      case 'arms':
         return Icons.accessibility;
       case 'abs':
         return Icons.grid_on;
