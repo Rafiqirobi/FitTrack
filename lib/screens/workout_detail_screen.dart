@@ -313,14 +313,11 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 const SizedBox(height: 12),
 
                 ...List.generate(steps.length, (index) {
-                  final step = steps[index];
+                  final step = steps[index] as Map<String, dynamic>;
                   return _buildStepCard(
                     workoutId,
                     index + 1,
                     step,
-                    data['duration'],
-                    data['sets'],
-                    data['reps'],
                   );
                 }),
 
@@ -357,7 +354,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     );
   }
 
-  Widget _buildStepCard(String workoutId, int stepNumber, String text, int? duration, int? sets, int? reps) {
+  Widget _buildStepCard(String workoutId, int stepNumber, Map<String, dynamic> stepData) {
+    final String text = stepData['text'] ?? 'No description';
+    final int? duration = stepData['duration'];
+    final int? sets = stepData['sets'];
+    final int? reps = stepData['reps'];
+
     String subtitle = '';
     if (duration != null) {
       subtitle = '$duration seconds';

@@ -67,7 +67,7 @@ Future<void> _initializeApp() async {
       themeMode: _themeMode,
       theme: neonLightTheme,
       darkTheme: neonDarkTheme,
-      initialRoute: '/home',
+      initialRoute: '/',
       routes: {
         '/': (context) => SplashScreen(),
         '/login': (context) => LoginScreen(),

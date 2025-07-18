@@ -43,20 +43,6 @@ class _MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: AppBar(
-        title: Text(
-          _getAppBarTitle(),
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.brightness_6, color: neonPrimary),
-            onPressed: widget.onToggleTheme,
-            tooltip: 'Toggle Theme',
-          )
-        ],
-      ),
       body: _pages[_currentIndex],
 
       bottomNavigationBar: SafeArea(
@@ -99,20 +85,5 @@ class _MainScreenState extends State<MainScreen> {
         size: 24,
       ),
     );
-  }
-
-  String _getAppBarTitle() {
-    switch (_currentIndex) {
-      case 0:
-        return 'Home';
-      case 1:
-        return 'Browse';
-      case 2:
-        return 'Statistics';
-      case 3:
-        return 'Profile';
-      default:
-        return '';
-    }
   }
 }

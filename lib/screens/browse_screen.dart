@@ -115,19 +115,33 @@ class _BrowseScreenState extends State<BrowseScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final size = MediaQuery.of(context).size;
     
-    final primaryColor = isDark ? Color(0xFF00F0FF) : Color(0xFF0066FF);
-    final backgroundColor = isDark ? Color(0xFF121212) : Color(0xFFFAFAFA);
-    final cardColor = isDark ? Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final primaryColor = theme.primaryColor;
+    final backgroundColor = theme.scaffoldBackgroundColor;
+    final cardColor = theme.cardColor;
+    final textColor = theme.textTheme.bodyLarge?.color ?? (isDark ? Colors.white : Colors.black87);
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
+        title: Text(
+          'Browse Workouts',
+          style: TextStyle(
+            color: primaryColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search, color: primaryColor),
+            onPressed: () {
+              // Implement search functionality
+            },
+          ),
+        ],
       ),
       body: _loading
           ? Center(child: CircularProgressIndicator(color: primaryColor))
@@ -136,7 +150,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
               children: [
                 // Horizontal Category Cards
                 SizedBox(
-                  height: 220,
+                  height: 140,
                   child: ListView.builder(
                     controller: _scrollController,
                     scrollDirection: Axis.horizontal,
@@ -145,85 +159,49 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     itemBuilder: (context, index) {
                       final category = categoryData.keys.elementAt(index);
                       final data = categoryData[category]!;
+                      final isSelected = _selectedCategory == category;
                       
                       return GestureDetector(
                         onTap: () {
-                          // Add a slight delay to make animation more visible
-                          Future.delayed(Duration(milliseconds: 50), () {
-                            _fetchWorkouts(category: category == 'All' ? null : category);
-                          });
+                          _fetchWorkouts(category: category == 'All' ? null : category);
                         },
-                        child: Container(
-                          width: size.width * 0.7,
-                          margin: EdgeInsets.only(right: 16),
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: 300),
+                          width: 100,
+                          margin: EdgeInsets.only(right: 12),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
+                            color: isSelected ? primaryColor : cardColor,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected ? primaryColor : theme.dividerColor,
+                              width: 1.5,
+                            ),
+                            boxShadow: isSelected ? [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
+                                color: primaryColor.withOpacity(0.3),
                                 blurRadius: 10,
-                                spreadRadius: 2,
                                 offset: Offset(0, 4),
                               ),
-                            ],
+                            ] : [],
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Image.asset(
-                                  data['image'],
-                                  fit: BoxFit.cover,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                data['icon'],
+                                color: isSelected ? (isDark ? Colors.black : Colors.white) : primaryColor,
+                                size: 32,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                category,
+                                style: TextStyle(
+                                  color: isSelected ? (isDark ? Colors.black : Colors.white) : textColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
                                 ),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Colors.transparent,
-                                        Colors.black.withOpacity(0.7),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 16,
-                                  right: 16,
-                                  child: Container(
-                                    padding: EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.5),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      data['icon'],
-                                      color: primaryColor,
-                                      size: 24,
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  left: 16,
-                                  right: 16,
-                                  bottom: 16,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        category == 'All' ? 'All Workouts' : '$category Workouts',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -236,8 +214,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
                   child: Text(
                     _selectedCategory == 'All' ? 'All Workouts' : '$_selectedCategory Workouts',
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
                   ),
@@ -250,66 +228,111 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemBuilder: (context, index, animation) {
                       final workout = _workouts[index];
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: Offset(0, 0.5),
-                          end: Offset.zero,
-                        ).animate(CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOut,
-                        )),
-                        child: FadeTransition(
-                          opacity: animation,
-                          child: Card(
-                            color: cardColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            margin: EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              contentPadding: EdgeInsets.all(16),
-                              leading: Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: primaryColor.withOpacity(0.1),
-                                ),
-                                child: Icon(
-                                  _getCategoryIcon(workout.category),
-                                  color: primaryColor,
-                                  size: 24,
-                                ),
-                              ),
-                              title: Text(
-                                workout.name,
-                                style: TextStyle(
-                                  color: textColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            
-                              trailing: Icon(
-                                Icons.arrow_forward_ios,
-                                color: textColor.withOpacity(0.5),
-                                size: 16,
-                              ),
-                              onTap: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/workoutDetail',
-                                  arguments: workout.id,
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      );
+                      return _buildWorkoutCard(workout, animation, context);
                     },
                   ),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildWorkoutCard(Workout workout, Animation<double> animation, BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = theme.primaryColor;
+    final cardColor = theme.cardColor;
+    final textColor = theme.textTheme.bodyLarge?.color ?? (isDark ? Colors.white : Colors.black87);
+
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: Offset(0, 0.5),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOut,
+      )),
+      child: FadeTransition(
+        opacity: animation,
+        child: Card(
+          color: cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          margin: EdgeInsets.only(bottom: 16),
+          elevation: 4,
+          shadowColor: Colors.black.withOpacity(0.1),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                '/workoutDetail',
+                arguments: workout.id,
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: primaryColor.withOpacity(0.1),
+                    ),
+                    child: Icon(
+                      _getCategoryIcon(workout.category),
+                      color: primaryColor,
+                      size: 30,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          workout.name,
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.timer_outlined, size: 16, color: Colors.grey[600]),
+                            SizedBox(width: 4),
+                            Text(
+                              '${workout.duration} min',
+                              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            ),
+                            SizedBox(width: 16),
+                            Icon(Icons.local_fire_department_outlined, size: 16, color: Colors.grey[600]),
+                            SizedBox(width: 4),
+                            Text(
+                              '${workout.calories} kcal',
+                              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: textColor.withOpacity(0.5),
+                    size: 18,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

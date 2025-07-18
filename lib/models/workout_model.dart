@@ -5,6 +5,7 @@ class Workout {
   final int duration;
   final String imageUrl;
   final String category;
+  final int calories;
 
   Workout({
     required this.id,
@@ -13,6 +14,7 @@ class Workout {
     required this.duration,
     required this.imageUrl,
     required this.category,
+    required this.calories,
   });
 
   factory Workout.fromMap(Map<String, dynamic> map, {String id = ''}) {
@@ -22,7 +24,8 @@ class Workout {
       description: map['description'] ?? '',
       duration: map['duration'] ?? 0,
       imageUrl: map['imageUrl'] ?? '',
-      category: map['category'] ?? ''
+      category: map['category'] ?? '',
+      calories: map['calories'] ?? 0,
     );
   }
 }
