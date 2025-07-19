@@ -1,7 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 import 'package:FitTrack/models/completed_workout_model.dart'; // Adjust import path as needed
+
+// Rank system based on total workouts completed
+class Rank {
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color color;
+  final int requiredWorkouts;
+  final int maxWorkouts;
+
+  Rank({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.color,
+    required this.requiredWorkouts,
+    required this.maxWorkouts,
+  });
+}
 
 // IMPORTANT: Ensure Firebase is initialized in your main.dart file like this:
 /*
@@ -31,6 +51,13 @@ class _StatsScreenState extends State<StatsScreen> {
   List<CompletedWorkout> _allCompletedWorkouts = []; // Stores all fetched workouts for calculations
   bool _isLoading = true;
   String? _userId;
+  
+  // Rank system variables
+  Rank? _currentRank;
+  Rank? _nextRank;
+  
+  // Real-time listener for auto-updates
+  StreamSubscription<QuerySnapshot>? _workoutDataSubscription;
 
   @override
   void initState() {
@@ -38,16 +65,91 @@ class _StatsScreenState extends State<StatsScreen> {
     _initializeUserAndFetchData();
   }
 
+  // Define rank tiers based on total workout count
+  List<Rank> _getRankTiers() {
+    return [
+      Rank(
+        title: 'Beginner',
+        description: 'Starting your fitness journey',
+        icon: Icons.fitness_center,
+        color: Colors.grey,
+        requiredWorkouts: 0,
+        maxWorkouts: 9,
+      ),
+      Rank(
+        title: 'Warrior',
+        description: 'Showing dedication and consistency',
+        icon: Icons.local_fire_department,
+        color: Colors.green,
+        requiredWorkouts: 10,
+        maxWorkouts: 24,
+      ),
+      Rank(
+        title: 'Elite',
+        description: 'Advanced fitness enthusiast',
+        icon: Icons.military_tech,
+        color: Colors.blue,
+        requiredWorkouts: 25,
+        maxWorkouts: 49,
+      ),
+      Rank(
+        title: 'Master',
+        description: 'Fitness master with exceptional commitment',
+        icon: Icons.emoji_events,
+        color: Colors.deepOrange,
+        requiredWorkouts: 50,
+        maxWorkouts: 99,
+      ),
+      Rank(
+        title: 'Legend',
+        description: 'Ultimate fitness legend',
+        icon: Icons.stars,
+        color: Colors.purple,
+        requiredWorkouts: 100,
+        maxWorkouts: 999,
+      ),
+    ];
+  }
+
+  // Calculate current rank based on total workout count
+  void _calculateRank() {
+    final rankTiers = _getRankTiers();
+    
+    _currentRank = null;
+    _nextRank = null;
+    
+    for (int i = 0; i < rankTiers.length; i++) {
+      Rank rank = rankTiers[i];
+      if (_totalWorkouts >= rank.requiredWorkouts && _totalWorkouts <= rank.maxWorkouts) {
+        _currentRank = rank;
+        
+        // Set next rank if available
+        if (i < rankTiers.length - 1) {
+          _nextRank = rankTiers[i + 1];
+        }
+        break;
+      }
+    }
+    
+    print('🏆 Current rank: ${_currentRank?.title}, Total workouts: $_totalWorkouts');
+    if (_nextRank != null) {
+      print('🎯 Next rank: ${_nextRank?.title}, Required: ${_nextRank?.requiredWorkouts}');
+    }
+  }
+
   Future<void> _initializeUserAndFetchData() async {
+    print('🔄 _initializeUserAndFetchData: Starting initialization'); // Debug print
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       setState(() {
         _userId = user.uid;
       });
-      print('Firebase Auth: User ID found: $_userId'); // Debug print
-      await _fetchWorkoutData();
+      print('🔄 Firebase Auth: User ID found: $_userId'); // Debug print
+      print('🔄 About to call _setupRealtimeListener()'); // Debug print
+      await _setupRealtimeListener();
+      print('🔄 _setupRealtimeListener() completed'); // Debug print
     } else {
-      print('Firebase Auth: User not logged in. Cannot fetch stats.'); // Debug print
+      print('❌ Firebase Auth: User not logged in. Cannot fetch stats.'); // Debug print
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -56,9 +158,140 @@ class _StatsScreenState extends State<StatsScreen> {
     }
   }
 
-  Future<void> _fetchWorkoutData() async {
+  // Set up real-time listener for automatic updates
+  Future<void> _setupRealtimeListener() async {
+    print('🔄 _setupRealtimeListener: Entry point reached'); // Debug print
     if (_userId == null) {
-      print('Firestore Fetch: User ID is null, stopping fetch.'); // Debug print
+      print('❌ Firestore Listener: User ID is null, cannot setup listener.'); // Debug print
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    print('🔄 _setupRealtimeListener: User ID verified: $_userId'); // Debug print
+
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
+    try {
+      print('🔄 Setting up real-time listener for userId: $_userId'); // Debug print
+      
+      // Cancel any existing subscription
+      await _workoutDataSubscription?.cancel();
+      print('🔄 Previous subscription cancelled (if any)'); // Debug print
+      
+      // Set up real-time listener
+      print('🔄 Creating Firestore snapshots listener...'); // Debug print
+      _workoutDataSubscription = FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('completedWorkouts')
+          .orderBy('timestamp', descending: true)
+          .snapshots()
+          .listen(
+        (QuerySnapshot snapshot) {
+          print('🔄 Real-time listener triggered: Found ${snapshot.docs.length} documents.'); // Debug print
+          if (mounted) {
+            _processWorkoutData(snapshot);
+          }
+        },
+        onError: (error) {
+          print('❌ Real-time listener error: $error');
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to load statistics: $error')),
+            );
+          }
+        },
+      );
+      print('🔄 Real-time listener setup complete!'); // Debug print
+    } catch (e) {
+      print('❌ Error setting up real-time listener: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to setup real-time updates: $e')),
+        );
+      }
+    }
+  }
+
+  // Process workout data from real-time listener
+  void _processWorkoutData(QuerySnapshot snapshot) {
+    print('🔄 _processWorkoutData: Processing real-time update with ${snapshot.docs.length} documents.'); // Debug print
+
+    List<CompletedWorkout> fetchedCompletedWorkouts = snapshot.docs
+        .map((doc) {
+          // Debug print individual document data to check for parsing issues
+          print('🔄 Document data: ${doc.data()}');
+          return CompletedWorkout.fromMap(doc.data() as Map<String, dynamic>, id: doc.id);
+        })
+        .toList();
+
+    print('✅ _processWorkoutData: Successfully parsed ${fetchedCompletedWorkouts.length} completed workouts'); // Debug print
+
+    int newTotalWorkouts = 0;
+    int newCaloriesBurned = 0;
+    int newTotalMinutes = 0;
+    List<int> newWeeklyWorkouts = List.filled(7, 0);
+
+    DateTime now = DateTime.now();
+    // Adjust startOfWeek to always be Monday for consistency
+    // DateTime.weekday returns 1 for Monday, ..., 7 for Sunday
+    // This ensures 'startOfWeek' is always the Monday of the current week.
+    int currentDay = now.weekday; // 1 for Monday, 7 for Sunday
+    DateTime startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: currentDay - 1));
+
+    for (var workoutRecord in fetchedCompletedWorkouts) {
+      newTotalWorkouts++;
+      newCaloriesBurned += workoutRecord.actualCaloriesBurned;
+      newTotalMinutes += workoutRecord.actualDurationMinutes;
+
+      // Check if the workout falls within the *current* week
+      // Ensure timestamp is not in the future and is on or after startOfWeek
+      if (workoutRecord.timestamp.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+          workoutRecord.timestamp.isBefore(startOfWeek.add(const Duration(days: 7)))) {
+        int dayIndex = workoutRecord.timestamp.weekday - 1; // Convert 1-7 (Mon-Sun) to 0-6
+        if (dayIndex >= 0 && dayIndex < 7) {
+          newWeeklyWorkouts[dayIndex]++;
+        }
+      }
+    }
+    
+    // Update state first, then calculate rank
+    if (mounted) {
+      setState(() {
+        _totalWorkouts = newTotalWorkouts;
+        _caloriesBurned = newCaloriesBurned;
+        _totalMinutes = newTotalMinutes;
+        _weeklyWorkouts = newWeeklyWorkouts;
+        _allCompletedWorkouts = fetchedCompletedWorkouts;
+        _isLoading = false; // Stop loading indicator
+        
+        // Calculate rank based on new total workouts
+        _calculateRank();
+        
+        print('🔄 Stats auto-updated: Total workouts: $_totalWorkouts, Calories: $_caloriesBurned, Minutes: $_totalMinutes'); // Debug print
+        print('🔄 Weekly Workouts: $_weeklyWorkouts'); // Debug print
+      });
+    }
+  }
+
+  Future<void> _fetchWorkoutData() async {
+    print('🔄 PULL-TO-REFRESH: Manual refresh triggered'); // Debug print
+    if (_userId == null) {
+      print('❌ PULL-TO-REFRESH: User ID is null, stopping fetch.'); // Debug print
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -74,80 +307,34 @@ class _StatsScreenState extends State<StatsScreen> {
     }
 
     try {
-      print('Firestore Fetch: Attempting to fetch data for userId: $_userId'); // Debug print
+      print('🔄 PULL-TO-REFRESH: Fetching data for userId: $_userId'); // Debug print
       QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('completed_workouts')
-          .where('userId', isEqualTo: _userId)
+          .collection('users')
+          .doc(_userId)
+          .collection('completedWorkouts')
           .orderBy('timestamp', descending: true)
           .get();
 
-      print('Firestore Fetch: Found ${snapshot.docs.length} documents.'); // Debug print
-
-      List<CompletedWorkout> fetchedCompletedWorkouts = snapshot.docs
-          .map((doc) {
-            // Debug print individual document data to check for parsing issues
-            // print('Document data: ${doc.data()}');
-            return CompletedWorkout.fromMap(doc.data() as Map<String, dynamic>, id: doc.id);
-          })
-          .toList();
-
-      int newTotalWorkouts = 0;
-      int newCaloriesBurned = 0;
-      int newTotalMinutes = 0;
-      List<int> newWeeklyWorkouts = List.filled(7, 0);
-
-      DateTime now = DateTime.now();
-      // Adjust startOfWeek to always be Monday for consistency
-      // DateTime.weekday returns 1 for Monday, ..., 7 for Sunday
-      // This ensures 'startOfWeek' is always the Monday of the current week.
-      int currentDay = now.weekday; // 1 for Monday, 7 for Sunday
-      DateTime startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: currentDay - 1));
-
-      // Removed the `avgWorkoutsPerWeek` calculation here as it's now handled in the build method.
-      // The `_totalWorkoutsForAllTime` is implicitly `fetchedCompletedWorkouts.length`
-      // and directly used in the build method.
-
-      for (var workoutRecord in fetchedCompletedWorkouts) {
-        newTotalWorkouts++;
-        newCaloriesBurned += workoutRecord.actualCaloriesBurned;
-        newTotalMinutes += workoutRecord.actualDurationMinutes;
-
-        // Check if the workout falls within the *current* week
-        // Ensure timestamp is not in the future and is on or after startOfWeek
-        if (workoutRecord.timestamp.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
-            workoutRecord.timestamp.isBefore(startOfWeek.add(const Duration(days: 7)))) {
-          int dayIndex = workoutRecord.timestamp.weekday - 1; // Convert 1-7 (Mon-Sun) to 0-6
-          if (dayIndex >= 0 && dayIndex < 7) {
-            newWeeklyWorkouts[dayIndex]++;
-          }
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _totalWorkouts = newTotalWorkouts;
-          _caloriesBurned = newCaloriesBurned;
-          _totalMinutes = newTotalMinutes;
-          _weeklyWorkouts = newWeeklyWorkouts;
-          _allCompletedWorkouts = fetchedCompletedWorkouts; // Assign fetched data to state variable
-          print('Stats Calculated: Total workouts: $_totalWorkouts, Calories: $_caloriesBurned, Minutes: $_totalMinutes'); // Debug print
-          print('Weekly Workouts: $_weeklyWorkouts'); // Debug print
-        });
-      }
+      print('🔄 PULL-TO-REFRESH: Found ${snapshot.docs.length} documents.'); // Debug print
+      _processWorkoutData(snapshot);
     } catch (e) {
-      print('Error fetching workout data: $e'); // Original error message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load statistics: ${e.toString()}')), // Use e.toString() for full error
-        );
-      }
-    } finally {
+      print('❌ Error in pull-to-refresh: $e'); // Original error message
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to refresh statistics: ${e.toString()}')), // Use e.toString() for full error
+        );
       }
     }
+  }
+
+  @override
+  void dispose() {
+    // Cancel the real-time listener to prevent memory leaks
+    _workoutDataSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -206,74 +393,185 @@ class _StatsScreenState extends State<StatsScreen> {
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: primaryColor))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Achievement Badge (Placeholder, can be made dynamic based on _totalWorkouts)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isDarkMode
-                            ? [primaryColor.withOpacity(0.6), primaryColor.withOpacity(0.4)]
-                            : [primaryColor.withOpacity(0.8), primaryColor.withOpacity(0.6)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+          : RefreshIndicator(
+              onRefresh: _fetchWorkoutData,
+              color: primaryColor,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                  // Rank Section
+                  if (_currentRank != null) ...[
+                    Text(
+                      'Your Rank',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: primaryColor.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.emoji_events,
-                              color: isDarkMode ? Colors.black : Colors.white,
-                              size: 32,
+                    const SizedBox(height: 16),
+                    
+                    // Current Rank Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDarkMode
+                              ? [_currentRank!.color.withOpacity(0.6), _currentRank!.color.withOpacity(0.3)]
+                              : [_currentRank!.color.withOpacity(0.8), _currentRank!.color.withOpacity(0.6)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _currentRank!.color.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              // Animated Icon Container
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                                ),
+                                child: Icon(
+                                  _currentRank!.icon,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'ACHIEVEMENT UNLOCKED',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _currentRank!.title.toUpperCase(),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          // Description with stats
+                          Text(
+                            _currentRank!.description,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.95),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              height: 1.4,
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Achievement Unlocked!',
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.black : Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                          ),
+                          
+                          // Progress to next rank
+                          if (_nextRank != null) ...[
+                            const SizedBox(height: 24),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Next Rank: ${_nextRank!.title}',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${_nextRank!.requiredWorkouts - _totalWorkouts} more',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Container(
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(4),
+                                    color: Colors.white.withOpacity(0.2),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: _totalWorkouts / _nextRank!.requiredWorkouts,
+                                      backgroundColor: Colors.transparent,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.military_tech, color: Colors.white, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'MAXIMUM RANK ACHIEVED!',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Workout Warrior',
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.black : Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Complete 40+ workouts', // You can make this dynamic based on _totalWorkouts
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.black87 : Colors.white70,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 30),
+                    const SizedBox(height: 30),
+                  ],
 
                   // Overview Cards
                   Text(
@@ -423,6 +721,7 @@ class _StatsScreenState extends State<StatsScreen> {
                 ],
               ),
             ),
+          ),
     );
   }
 

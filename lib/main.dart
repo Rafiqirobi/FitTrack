@@ -11,6 +11,7 @@ import 'screens/workout_detail_screen.dart';
 import 'screens/browse_screen.dart';
 import 'screens/workout_timer_screen.dart';
 import 'screens/reps_screen.dart';
+import 'screens/favourites_screen.dart';
 import 'screens/nav_bottom_bar.dart'; // Main navigation
 
 void main() async {
@@ -78,6 +79,7 @@ class _FitTrackAppState extends State<FitTrackApp> {
         '/browse': (context) => BrowseScreen(),
         '/workoutTimer': (context) => WorkoutTimerScreen(),
         '/repsScreen': (context) => RepsScreen(),
+        '/favourites': (context) => FavouritesScreen(),
       },
     );
   }

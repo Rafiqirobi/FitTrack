@@ -9,8 +9,27 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  String email = '', password = '', confirmPassword = '';
+  String email = '', password = '', confirmPassword = '', username = '';
   bool _isLoading = false;
+
+  String? _validateEmail(String? val) {
+    if (val == null || val.isEmpty) return 'Enter email';
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w]{2,4}$');
+    if (!emailRegex.hasMatch(val)) return 'Enter valid email';
+    return null;
+  }
+
+  String? _validateUsername(String? val) {
+    if (val == null || val.isEmpty) return 'Enter username';
+    if (val.length < 3) return 'Username must be at least 3 characters';
+    return null;
+  }
+
+  String? _validatePassword(String? val) {
+    if (val == null || val.isEmpty) return 'Enter password';
+    if (val.length < 6) return 'Password must be at least 6 characters';
+    return null;
+  }
 
   void _register() async {
     if (_formKey.currentState!.validate()) {
@@ -23,7 +42,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       setState(() => _isLoading = true);
       try {
-        User? user = await AuthService().registerWithEmail(email, password);
+        User? user = await AuthService().registerWithEmail(email.trim(), password.trim(), username.trim());
         if (user != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Registration successful')),
@@ -91,6 +110,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       key: _formKey,
                       child: Column(
                         children: [
+                          // Username Field
+                          TextFormField(
+                            decoration: InputDecoration(
+                              labelText: 'Username',
+                              hintText: 'Enter your username',
+                              prefixIcon: Icon(Icons.person_outline),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                              ),
+                            ),
+                            onChanged: (val) => username = val,
+                            validator: _validateUsername,
+                          ),
+                          SizedBox(height: 20),
+                          
                           // Email Field
                           TextFormField(
                             decoration: InputDecoration(
@@ -114,7 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             keyboardType: TextInputType.emailAddress,
                             onChanged: (val) => email = val,
-                            validator: (val) => val!.isEmpty ? 'Please enter your email' : null,
+                            validator: _validateEmail,
                           ),
                           SizedBox(height: 20),
                           
@@ -141,7 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             obscureText: true,
                             onChanged: (val) => password = val,
-                            validator: (val) => val!.length < 6 ? 'Password must be at least 6 characters' : null,
+                            validator: _validatePassword,
                           ),
                           SizedBox(height: 20),
                           

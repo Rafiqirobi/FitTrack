@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:math';
 import 'package:FitTrack/services/firestore_service.dart';
+import 'package:FitTrack/services/quote_service.dart';
 import 'package:FitTrack/models/workout_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:FitTrack/models/completed_workout_model.dart';
 
 // Ensure your main.dart or app setup includes a MaterialApp
 // with defined themes (light and dark) for primaryColor, scaffoldBackgroundColor,
@@ -69,38 +72,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Favorite workouts state
   List<Workout> _favoriteWorkouts = [];
   bool _loadingFavoriteWorkouts = true;
+  int _totalFavoriteCount = 0; // Track total number of favorites
   StreamSubscription? _favoritesSubscription;
+  
+  // Workout statistics state
+  int _todayMinutes = 0;
+  int _weeklyWorkouts = 0;
+  String? _userId;
+  StreamSubscription<QuerySnapshot>? _workoutStatsSubscription;
 
-  // --- Motivational Quotes ---
-  final List<String> _motivationalQuotes = [
-    "Your body can do it. It's your mind you need to convince!",
-    "Don't stop when you're tired. Stop when you're done!",
-    "The pain you feel today will be the strength you feel tomorrow!",
-    "Success isn't given. It's earned in the gym!",
-    "Champions train, losers complain!",
-    "Push yourself because no one else is going to do it for you!",
-    "Great things never come from comfort zones!",
-    "Make yourself proud!",
-    "The only bad workout is the one that didn't happen!",
-    "Strong is the new beautiful!",
-    "Fitness is not about being better than someone else. It's about being better than you used to be!",
-    "You are stronger than your excuses!",
-    "Every workout gets you one step closer to your goal!",
-    "Train like a beast, look like a beauty!",
-    "The hardest part is showing up!",
-    "Your future self will thank you!",
-    "Believe in yourself and you will be unstoppable!",
-    "Progress, not perfection!",
-    "Make it happen!",
-    "Today's pain is tomorrow's power!",
-    "The only impossible journey is the one you never begin!",
-    "Sweat is just fat crying!",
-    "Your only limit is your mind!",
-    "Wake up with determination, go to bed with satisfaction!",
-    "A champion is someone who gets up when they can't!"
-  ];
-
-  String _currentQuote = '';
+  // --- Motivational Quotes from ZenQuotes API ---
+  Quote? _currentQuote;
+  bool _loadingQuote = true;
 
   // --- Animation Controllers and Animations ---
   // Declared as `late` because they are initialized in `initState`.
@@ -134,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       (workouts) {
         if (mounted) {
           setState(() {
+            _totalFavoriteCount = workouts.length; // Store total count
             _favoriteWorkouts = workouts.take(3).toList(); // Take only the 3 most recent favorites
             _loadingFavoriteWorkouts = false;
           });
@@ -151,18 +135,147 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> _refreshFavorites() async {
-    print('🔄 Refreshing favorites...');
-    _loadFavoriteWorkouts();
-    // Add a small delay to show the refresh indicator
-    await Future.delayed(Duration(milliseconds: 500));
+  // Initialize workout statistics with real-time listeners
+  Future<void> _initializeWorkoutStats() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _userId = user.uid;
+      });
+      print('🔄 Home: Setting up workout stats listener for user: $_userId');
+      await _setupWorkoutStatsListener();
+    } else {
+      print('❌ Home: User not logged in, cannot load workout stats');
+    }
   }
 
-  void _generateRandomQuote() {
-    final random = Random();
+  // Set up real-time listener for workout statistics
+  Future<void> _setupWorkoutStatsListener() async {
+    if (_userId == null) return;
+
+    try {
+      // Cancel any existing subscription
+      await _workoutStatsSubscription?.cancel();
+
+      // Set up real-time listener for completed workouts
+      _workoutStatsSubscription = FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('completedWorkouts')
+          .snapshots()
+          .listen(
+        (QuerySnapshot snapshot) {
+          if (mounted) {
+            _processWorkoutStats(snapshot);
+          }
+        },
+        onError: (error) {
+          print('❌ Home: Error in workout stats listener: $error');
+        },
+      );
+    } catch (e) {
+      print('❌ Home: Error setting up workout stats listener: $e');
+    }
+  }
+
+  // Process workout statistics from Firestore
+  void _processWorkoutStats(QuerySnapshot snapshot) {
+    if (!mounted) return;
+
+    print('🔄 Home: Processing ${snapshot.docs.length} completed workout documents');
+
+    List<CompletedWorkout> completedWorkouts = snapshot.docs
+        .map((doc) => CompletedWorkout.fromMap(
+            doc.data() as Map<String, dynamic>, id: doc.id))
+        .toList();
+
+    print('🔄 Home: Successfully parsed ${completedWorkouts.length} completed workouts');
+
+    // Calculate today's total minutes
+    DateTime today = DateTime.now();
+    DateTime startOfToday = DateTime(today.year, today.month, today.day);
+    DateTime endOfToday = startOfToday.add(const Duration(days: 1));
+
+    print('🔄 Home: Today calculation - Start: $startOfToday, End: $endOfToday, Now: $today');
+
+    int todayMinutes = 0;
+    for (var workout in completedWorkouts) {
+      bool isToday = (workout.timestamp.isAfter(startOfToday) || workout.timestamp.isAtSameMomentAs(startOfToday)) &&
+                     workout.timestamp.isBefore(endOfToday);
+      
+      if (isToday) {
+        todayMinutes += workout.actualDurationMinutes;
+        print('🔄 Home: Workout included in today - ${workout.workoutName}: ${workout.actualDurationMinutes} min at ${workout.timestamp}');
+      }
+    }
+
+    // Calculate this week's workouts
+    int currentDay = today.weekday; // 1 for Monday, 7 for Sunday
+    DateTime startOfWeek = DateTime(today.year, today.month, today.day)
+        .subtract(Duration(days: currentDay - 1)); // Start of current week (Monday)
+    DateTime endOfWeek = startOfWeek.add(const Duration(days: 7)); // Start of next week
+
+    print('🔄 Home: Week calculation - Start: $startOfWeek, End: $endOfWeek, Today: $today');
+
+    int weeklyWorkouts = 0;
+    for (var workout in completedWorkouts) {
+      // Use isAtSameMomentAs or comparisons that include boundaries
+      bool isInCurrentWeek = (workout.timestamp.isAfter(startOfWeek) || workout.timestamp.isAtSameMomentAs(startOfWeek)) &&
+                            workout.timestamp.isBefore(endOfWeek);
+      
+      if (isInCurrentWeek) {
+        weeklyWorkouts++;
+        print('🔄 Home: Workout included in week count - ${workout.workoutName} at ${workout.timestamp}');
+      }
+    }
+
+    print('🔄 Home: Total completed workouts in dataset: ${completedWorkouts.length}');
+    print('🔄 Home: Workouts this week: $weeklyWorkouts');
+
     setState(() {
-      _currentQuote = _motivationalQuotes[random.nextInt(_motivationalQuotes.length)];
+      _todayMinutes = todayMinutes;
+      _weeklyWorkouts = weeklyWorkouts;
     });
+
+    print('🔄 Home: Stats updated - Today: ${_todayMinutes} min, This week: ${_weeklyWorkouts} workouts');
+  }
+
+  Future<void> _generateRandomQuote() async {
+    setState(() {
+      _loadingQuote = true;
+    });
+    
+    try {
+      final quote = await QuoteService.getRandomQuote();
+      setState(() {
+        _currentQuote = quote;
+        _loadingQuote = false;
+      });
+    } catch (e) {
+      print('Error generating quote: $e');
+      setState(() {
+        _loadingQuote = false;
+      });
+    }
+  }
+
+  // Refresh method for pull-to-refresh
+  Future<void> _refreshHomeData() async {
+    print('🔄 Home: Pull-to-refresh triggered');
+    
+    // Generate a new quote
+    _generateRandomQuote();
+    
+    // Refresh workout statistics
+    await _initializeWorkoutStats();
+    
+    // Refresh favorite workouts
+    _loadFavoriteWorkouts();
+    
+    // Small delay for better UX
+    await Future.delayed(Duration(milliseconds: 500));
+    
+    print('🔄 Home: Pull-to-refresh completed');
   }
 
   void _navigateToWorkout(String workoutId, String workoutName) {
@@ -289,8 +402,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Load favorite workouts
     _loadFavoriteWorkouts();
 
-    // Generate a random motivational quote
+    // Generate a random motivational quote from ZenQuotes API
     _generateRandomQuote();
+    
+    // Initialize workout statistics
+    _initializeWorkoutStats();
 
     // Start all animations shortly after the initial build completes
     // This gives Flutter a moment to lay out the widgets before animating them.
@@ -342,6 +458,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       controller.dispose(); // Dispose each controller in the list
     }
     _favoritesSubscription?.cancel(); // Cancel favorites subscription
+    _workoutStatsSubscription?.cancel(); // Cancel workout stats subscription
     super.dispose(); // Always call super.dispose() last
   }
 
@@ -383,14 +500,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
       body: SafeArea( // Ensures content doesn't go under notches/status bar
         child: RefreshIndicator(
-          onRefresh: _refreshFavorites,
+          onRefresh: _refreshHomeData,
           color: Theme.of(context).primaryColor,
+          backgroundColor: Theme.of(context).cardColor,
           child: SingleChildScrollView( // Allows content to scroll if it overflows
             physics: AlwaysScrollableScrollPhysics(), // Enables pull-to-refresh even when content doesn't fill screen
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0), // Adjusted padding
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, // Align children to the start (left)
-              children: [
+                crossAxisAlignment: CrossAxisAlignment.start, // Align children to the start (left)
+                children: [
               // Welcome header (with Fade and Slide Animations)
               FadeTransition(
                 opacity: _headerFadeAnimation,
@@ -400,14 +518,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     onTap: _generateRandomQuote, // Tap to get a new quote
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      child: Text(
-                        _currentQuote.isNotEmpty ? _currentQuote : 'Welcome back, Fitness Enthusiast!',
-                        style: TextStyle(
-                          color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
-                          fontSize: 26, // Slightly smaller to accommodate longer motivational quotes
-                          fontWeight: FontWeight.w700, // Bold but readable
-                        ),
-                        textAlign: TextAlign.center, // Center align for better readability
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (_loadingQuote)
+                            CircularProgressIndicator(
+                              color: Theme.of(context).primaryColor,
+                              strokeWidth: 2,
+                            )
+                          else if (_currentQuote != null)
+                            Column(
+                              children: [
+                                Text(
+                                  '"${_currentQuote!.text}"',
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  '- ${_currentQuote!.author}',
+                                  style: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            )
+                          else
+                            Text(
+                              'Welcome back, Fitness Enthusiast!',
+                              style: TextStyle(
+                                color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
+                                fontSize: 26,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -418,7 +572,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: SlideTransition(
                   position: _headerSlideAnimation,
                   child: Text(
-                    'Let\'s make today count! (Tap above for new inspiration)', // More generic subtitle with hint about tapping for inspiration
+                    'Tap the quote above for daily inspiration!', // Updated hint about tapping for new quotes
                     style: TextStyle(
                       color: Colors.grey[isDarkMode ? 400 : 700], // Adjust color for dark mode
                       fontSize: 15, // Slightly smaller to accommodate the hint
@@ -439,7 +593,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Expanded(
                         child: _buildStatCard(
                           'Today\'s Goal',
-                          '30 min',
+                          '$_todayMinutes min',
                           Icons.flag_outlined,
                           Theme.of(context).primaryColor.withOpacity(0.15), // Slightly more opaque background
                           Theme.of(context).primaryColor, // Icon color matches primary
@@ -450,7 +604,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Expanded(
                         child: _buildStatCard(
                           'This Week',
-                          '4 workouts',
+                          '$_weeklyWorkouts workouts',
                           Icons.calendar_today_outlined,
                           Colors.orange.withOpacity(0.15),
                           Colors.orange, // Icon color matches orange
@@ -463,7 +617,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
               SizedBox(height: 35), // Increased spacing
 
-              // Favourite Workouts - Section Title with Refresh Button
+              // Favourite Workouts - Section Title
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -475,15 +629,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       fontWeight: FontWeight.w700, // Bolder
                     ),
                   ),
-                  IconButton(
-                    onPressed: _refreshFavorites,
-                    icon: Icon(
-                      Icons.refresh,
-                      color: Theme.of(context).primaryColor,
-                      size: 24,
+                  // View All button - only show when there are favorites
+                  if (!_loadingFavoriteWorkouts && _favoriteWorkouts.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/favourites');
+                      },
+                      icon: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 14,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                      label: Text(
+                        _totalFavoriteCount > 3 ? 'View All (${_totalFavoriteCount})' : 'View All',
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                     ),
-                    tooltip: 'Refresh favorites',
-                  ),
                 ],
               ),
               SizedBox(height: 18), // Slightly increased spacing

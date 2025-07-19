@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:FitTrack/services/firestore_service.dart';
-import 'package:FitTrack/models/workout_model.dart'; // Assuming this exists
 import 'package:FitTrack/models/completed_workout_model.dart'; // Ensure this path is correct
 
 class WorkoutTimerScreen extends StatefulWidget {
@@ -12,7 +11,7 @@ class WorkoutTimerScreen extends StatefulWidget {
 
 class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
     with TickerProviderStateMixin {
-  late List<dynamic> steps;
+  List<dynamic> steps = []; // Initialize with empty list instead of late
   late Map<String, dynamic> workoutData;
   int currentStepIndex = 0;
   int currentStepTime = 0; // Time remaining for current timed step (rest or exercise with duration)
@@ -21,6 +20,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
   bool isPaused = false;
   bool workoutIsFinishedUI = false; // Controls the UI state (timer vs. finished screen)
   bool showingExerciseInfo = true; // true when showing exercise details, false when showing active timer
+  bool _isInitialized = false; // Track if data has been initialized
 
   Timer? _timer;
   AnimationController? _progressController; // For circular progress
@@ -43,14 +43,23 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Check if workoutData is already set, preventing re-initialization on hot reload
-    if (!mounted || steps.isNotEmpty) return;
+    // Check if already initialized to prevent re-initialization on hot reload
+    if (_isInitialized) return;
 
     final args = ModalRoute.of(context)!.settings.arguments;
+    print('🔍 WorkoutTimer: Received arguments: $args'); // Debug log
+    
     if (args is Map<String, dynamic>) {
       workoutData = args;
+      print('🔍 WorkoutTimer: Workout data keys: ${workoutData.keys.toList()}'); // Debug log
       steps = workoutData['steps'] ?? [];
+      print('🔍 WorkoutTimer: Steps count: ${steps.length}'); // Debug log
+      if (steps.isNotEmpty) {
+        print('🔍 WorkoutTimer: First step: ${steps[0]}'); // Debug log
+      }
+      _isInitialized = true;
     } else {
+      print('❌ WorkoutTimer: Invalid arguments type: ${args.runtimeType}'); // Debug log
       // Handle the case where arguments are null or not of the expected type
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -62,6 +71,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
     }
 
     if (steps.isEmpty) {
+      print('❌ WorkoutTimer: No steps found in workout data'); // Debug log
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No workout steps available for this workout.')),
@@ -76,6 +86,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
       showingExerciseInfo = true;
       isResting = false;
     });
+    print('✅ WorkoutTimer: Initialization completed successfully'); // Debug log
   }
 
   void _setupAnimations() {
@@ -298,18 +309,34 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
     });
 
     _timer?.cancel();
-    _progressController?.stop();
-    _progressController?.dispose();
-    _textPulseController?.stop(); // Stop pulsing
-    _textPulseController?.dispose(); // Dispose pulsing controller
+    
+    // Safely dispose controllers before finishing
+    try {
+      _progressController?.stop();
+      _progressController?.dispose();
+    } catch (e) {
+      // Controller already disposed
+    }
+    
+    try {
+      _textPulseController?.stop();
+      _textPulseController?.dispose();
+    } catch (e) {
+      // Controller already disposed
+    }
 
     // Start the finish animation
     _finishAnimationController?.forward();
 
-    await _playFinishSound();
+    // Try to play finish sound, but don't let it block the save process
+    _playFinishSound().catchError((error) {
+      print('⚠️ Sound playback failed (this is OK): $error');
+    });
 
     // Save completed workout to Firestore
     try {
+      print('🎯 Starting workout completion save process...'); // Debug log
+      
       // Calculate actual duration based on session start time
       int finalDurationMinutes = 0;
       if (_workoutSessionStartTime != null) {
@@ -328,6 +355,9 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
       // Re-use the estimated calories from the workout data as actual.
       final int finalCaloriesBurned = (workoutData['calories'] as int? ?? 200);
 
+      print('🎯 Duration calculated: $finalDurationMinutes minutes'); // Debug log
+      print('🎯 Calories calculated: $finalCaloriesBurned'); // Debug log
+
       // Construct CompletedWorkout object with explicit casting for safety
       final completedWorkout = CompletedWorkout(
         id: '', // Firestore will generate this ID
@@ -340,10 +370,13 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
         workoutCategory: workoutData['category'] as String? ?? 'Uncategorized',
       );
 
+      print('🎯 Completed workout object created: ${completedWorkout.workoutName}'); // Debug log
+      print('🎯 User ID: ${completedWorkout.userId}'); // Debug log
+
       // Pass the fully constructed CompletedWorkout object to FirestoreService
       await _firestoreService.saveWorkoutCompletion(completedWorkout);
 
-      print('Workout completion saved successfully! Duration: $finalDurationMinutes mins, Calories: $finalCaloriesBurned');
+      print('✅ Workout completion saved successfully! Duration: $finalDurationMinutes mins, Calories: $finalCaloriesBurned'); // Enhanced debug log
     } catch (e) {
       print('Error saving workout completion: $e');
       // Optionally show a snackbar to the user about the save error
@@ -363,9 +396,26 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
   @override
   void dispose() {
     _timer?.cancel();
-    _progressController?.dispose();
-    _textPulseController?.dispose(); // Dispose pulsing controller
-    _finishAnimationController?.dispose(); // Dispose finish controller
+    
+    // Safely dispose controllers
+    try {
+      _progressController?.dispose();
+    } catch (e) {
+      // Controller already disposed
+    }
+    
+    try {
+      _textPulseController?.dispose();
+    } catch (e) {
+      // Controller already disposed
+    }
+    
+    try {
+      _finishAnimationController?.dispose();
+    } catch (e) {
+      // Controller already disposed
+    }
+    
     _audioPlayer.dispose();
     super.dispose();
   }
