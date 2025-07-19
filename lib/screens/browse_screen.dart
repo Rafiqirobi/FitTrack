@@ -117,6 +117,39 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Check for route arguments to set initial category
+    final Map<String, dynamic>? args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    
+    if (args != null) {
+      final String? initialCategory = args['initialCategory'];
+      final bool autoSelectFirst = args['autoSelectFirst'] ?? false;
+      
+      if (initialCategory != null && initialCategory != _selectedCategory) {
+        // Set the selected category and fetch workouts
+        Future.delayed(const Duration(milliseconds: 200), () {
+          _fetchWorkouts(category: initialCategory);
+          
+          // If autoSelectFirst is true, try to navigate to the first workout
+          if (autoSelectFirst) {
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (_workouts.isNotEmpty) {
+                Navigator.pushNamed(
+                  context,
+                  '/workoutDetail',
+                  arguments: _workouts.first.id,
+                );
+              }
+            });
+          }
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _categoryListController.dispose();
     _headerTextController.dispose();

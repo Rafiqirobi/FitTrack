@@ -165,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // Category Cards Animations (staggered effect)
     _categoryControllers = List.generate(
-      4, // Number of category cards
+      8, // Number of category cards (increased for more categories)
       (index) => AnimationController(
         vsync: this,
         // Staggered duration: each card animates slightly after the previous one
@@ -406,12 +406,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(25),
-                      onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/workoutDetail',
-                          arguments: 'Quick Start Workout', // Pass data to the detail screen
+                      onTap: () async {
+                        // Show immediate feedback
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('🚀 Starting your Quick HIIT workout...'),
+                            duration: Duration(milliseconds: 1500),
+                            behavior: SnackBarBehavior.floating,
+                            margin: EdgeInsets.all(16.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            backgroundColor: Theme.of(context).primaryColor,
+                          ),
                         );
+                        
+                        // Navigate to browse screen with HIIT category pre-selected, then to a specific workout
+                        try {
+                          // First get a HIIT workout from the database for Quick Start
+                          await Navigator.pushNamed(
+                            context,
+                            '/browse',
+                            arguments: {
+                              'initialCategory': 'hiit',
+                              'autoSelectFirst': true, // Flag to auto-select the first HIIT workout
+                            },
+                          );
+                        } catch (e) {
+                          print('Error navigating to Quick Start: $e');
+                          // Fallback: Navigate to browse screen with HIIT category
+                          Navigator.pushNamed(
+                            context,
+                            '/browse',
+                            arguments: {'initialCategory': 'hiit'},
+                          );
+                        }
                       },
                       child: Padding(
                         padding: const EdgeInsets.all(28.0), // More padding
@@ -479,22 +508,116 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 crossAxisSpacing: 18, // Spacing between columns
                 mainAxisSpacing: 18, // Spacing between rows
                 childAspectRatio: 1.1, // Adjusted aspect ratio for better look
-                children: List.generate( // Dynamically generate cards with animations
-                  4, // Number of category cards
-                  (index) => FadeTransition(
-                    opacity: _categoryFadeAnimations[index], // Apply individual fade animation
+                children: [
+                  // First row
+                  FadeTransition(
+                    opacity: _categoryFadeAnimations[0],
                     child: SlideTransition(
-                      position: _categorySlideAnimations[index], // Apply individual slide animation
+                      position: _categorySlideAnimations[0],
                       child: _buildCategoryCard(
-                        // Data for each card (matched by index)
-                        ['Strength', 'Cardio', 'Yoga & Stretch', 'Quick HIIT'][index],
-                        [Icons.fitness_center, Icons.directions_run, Icons.self_improvement, Icons.flash_on][index],
-                        [Colors.deepOrange, Colors.lightBlue, Colors.lightGreen, Colors.purple][index],
+                        'Strength Training',
+                        Icons.fitness_center,
+                        Colors.deepOrange,
+                        'strength',
                         isDarkMode,
                       ),
                     ),
                   ),
-                ),
+                  FadeTransition(
+                    opacity: _categoryFadeAnimations[1],
+                    child: SlideTransition(
+                      position: _categorySlideAnimations[1],
+                      child: _buildCategoryCard(
+                        'Cardio Workouts',
+                        Icons.favorite,
+                        Colors.red,
+                        'cardio',
+                        isDarkMode,
+                      ),
+                    ),
+                  ),
+                  // Second row
+                  FadeTransition(
+                    opacity: _categoryFadeAnimations[2],
+                    child: SlideTransition(
+                      position: _categorySlideAnimations[2],
+                      child: _buildCategoryCard(
+                        'Yoga & Mindfulness',
+                        Icons.self_improvement,
+                        Colors.lightGreen,
+                        'yoga',
+                        isDarkMode,
+                      ),
+                    ),
+                  ),
+                  FadeTransition(
+                    opacity: _categoryFadeAnimations[3],
+                    child: SlideTransition(
+                      position: _categorySlideAnimations[3],
+                      child: _buildCategoryCard(
+                        'HIIT Intense',
+                        Icons.local_fire_department,
+                        Colors.purple,
+                        'hiit',
+                        isDarkMode,
+                      ),
+                    ),
+                  ),
+                  // Third row - Muscle-Specific Workouts
+                  FadeTransition(
+                    opacity: _categoryFadeAnimations.length > 4 ? _categoryFadeAnimations[4] : _categoryFadeAnimations[0],
+                    child: SlideTransition(
+                      position: _categorySlideAnimations.length > 4 ? _categorySlideAnimations[4] : _categorySlideAnimations[0],
+                      child: _buildCategoryCard(
+                        'Arms & Biceps',
+                        Icons.sports_handball,
+                        Colors.blueAccent,
+                        'arms',
+                        isDarkMode,
+                      ),
+                    ),
+                  ),
+                  FadeTransition(
+                    opacity: _categoryFadeAnimations.length > 5 ? _categoryFadeAnimations[5] : _categoryFadeAnimations[1],
+                    child: SlideTransition(
+                      position: _categorySlideAnimations.length > 5 ? _categorySlideAnimations[5] : _categorySlideAnimations[1],
+                      child: _buildCategoryCard(
+                        'Chest Power',
+                        Icons.accessibility_new,
+                        Colors.teal,
+                        'chest',
+                        isDarkMode,
+                      ),
+                    ),
+                  ),
+                  // Fourth row
+                  FadeTransition(
+                    opacity: _categoryFadeAnimations.length > 6 ? _categoryFadeAnimations[6] : _categoryFadeAnimations[2],
+                    child: SlideTransition(
+                      position: _categorySlideAnimations.length > 6 ? _categorySlideAnimations[6] : _categorySlideAnimations[2],
+                      child: _buildCategoryCard(
+                        'Core & Abs',
+                        Icons.grid_on,
+                        Colors.amber,
+                        'abs',
+                        isDarkMode,
+                      ),
+                    ),
+                  ),
+                  FadeTransition(
+                    opacity: _categoryFadeAnimations.length > 7 ? _categoryFadeAnimations[7] : _categoryFadeAnimations[3],
+                    child: SlideTransition(
+                      position: _categorySlideAnimations.length > 7 ? _categorySlideAnimations[7] : _categorySlideAnimations[3],
+                      child: _buildCategoryCard(
+                        'Legs & Lower Body',
+                        Icons.directions_run,
+                        Colors.indigo,
+                        'leg',
+                        isDarkMode,
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
               SizedBox(height: 35),
@@ -596,7 +719,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // --- Helper Widget for Category Cards ---
   Widget _buildCategoryCard(
-      String title, IconData icon, Color color, bool isDarkMode) {
+      String title, IconData icon, Color color, String category, bool isDarkMode) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor, // Uses theme's card color
@@ -609,7 +732,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () {
-            Navigator.pushNamed(context, '/browse'); // Navigate to browse screen
+            // Show feedback to user
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Loading $title workouts...'),
+                duration: Duration(milliseconds: 1500),
+                behavior: SnackBarBehavior.floating,
+                margin: EdgeInsets.all(16.0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+            
+            // Navigate to browse screen with the specific category pre-selected
+            Navigator.pushNamed(
+              context, 
+              '/browse',
+              arguments: {'initialCategory': category},
+            );
           },
           child: Padding(
             padding: const EdgeInsets.all(20.0), // More padding
