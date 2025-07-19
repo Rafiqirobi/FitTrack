@@ -23,6 +23,11 @@ class CompletedWorkout {
 
   // Factory constructor to create a CompletedWorkout object from a Firestore document map.
   factory CompletedWorkout.fromMap(Map<String, dynamic> data, {required String id}) {
+    // --- START DEBUGGING ADDITION ---
+    print('CompletedWorkout.fromMap: Processing document with ID: $id');
+    print('Raw data received: $data');
+    // --- END DEBUGGING ADDITION ---
+
     return CompletedWorkout(
       id: id, // The document ID from Firestore
       userId: data['userId'] as String? ?? '', // Provide default empty string for null safety

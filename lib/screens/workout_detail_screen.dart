@@ -46,31 +46,24 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     }
   }
 
-  Future<void> _toggleFavorite(String workoutId) async {
-    try {
-      await _firestoreService.toggleWorkoutFavorite(workoutId);
+Future<void> _toggleFavorite(String workoutId) async {
+  try {
+    await _firestoreService.toggleWorkoutFavorite(workoutId);
+    if (mounted) { // Always check mounted before calling setState
       setState(() {
         _isFavorite = !_isFavorite;
       });
-      
+    }
+  } catch (e) {
+    print('Error toggling favorite status: $e');
+    // Optionally, show a snackbar or alert to the user
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isFavorite ? '❤️ Added to favorites!' : '💔 Removed from favorites'),
-          duration: Duration(milliseconds: 1500),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } catch (e) {
-      print('Error toggling favorite: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating favorites. Please try again.'),
-          backgroundColor: Colors.red,
-          duration: Duration(milliseconds: 2000),
-        ),
+        SnackBar(content: Text('Failed to update favorite status: $e')),
       );
     }
   }
+}
 
   Future<void> _editStepDialog(String workoutId, int index, Map<String, dynamic> stepData, List steps) async {
     final durationController = TextEditingController(text: stepData['duration']?.toString() ?? '');

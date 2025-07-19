@@ -1,159 +1,85 @@
+// services/firestore_service.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:FitTrack/models/completed_workout_model.dart';
-import 'package:FitTrack/models/workout_model.dart';
+import '../models/workout_model.dart'; // Make sure this path is correct
+import '../models/completed_workout_model.dart'; // Make sure this path is correct
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Save completed workout
-  Future<void> saveWorkoutCompletion({
-    required Workout workoutDetails,
-    required int finalDurationMinutes,
-    required int finalCaloriesBurned,
-  }) async {
-    final user = _auth.currentUser;
-    if (user == null) {
-      print('Error: User not logged in. Cannot save workout completion.');
-      return;
-    }
-
-    final completedWorkout = CompletedWorkout(
-      id: '',
-      userId: user.uid,
-      workoutId: workoutDetails.id,
-      workoutName: workoutDetails.name,
-      actualDurationMinutes: finalDurationMinutes,
-      actualCaloriesBurned: finalCaloriesBurned,
-      timestamp: DateTime.now(),
-      workoutCategory: workoutDetails.category,
-    );
-
-    try {
-      await _db.collection('completed_workouts').add(completedWorkout.toMap());
-      print('Workout completion recorded for user ${user.uid}');
-    } catch (e) {
-      print('Failed to save workout: $e');
-      rethrow;
-    }
+  // Method to get current user ID
+  String? getCurrentUserId() {
+    return _auth.currentUser?.uid;
   }
 
-  // Fetch all available workouts (static template)
-  Stream<List<Workout>> getWorkouts() {
-    return _db.collection('workouts').snapshots().map(
-      (snapshot) => snapshot.docs
-          .map((doc) => Workout.fromMap(doc.data(), id: doc.id))
-          .toList(),
-    );
-  }
-
-  // ✅ NEW: Fetch completed workouts for the current user
-  Stream<List<CompletedWorkout>> getCompletedWorkoutsForCurrentUser() {
-    final user = _auth.currentUser;
-    if (user == null) {
-      return const Stream.empty();
+  // Method to save a new workout
+  Future<void> saveWorkout(Workout workout) async {
+    // This method is for saving a 'Workout' model, typically created by an admin or user for future use.
+    final userId = getCurrentUserId();
+    if (userId == null) {
+      throw Exception("User not logged in.");
     }
 
-    return _db
-        .collection('completed_workouts')
-        .where('userId', isEqualTo: user.uid)
-        .snapshots()
-        .map((snapshot) {
-      // Sort in memory instead of using orderBy to avoid index requirement
-      final workouts = snapshot.docs.map((doc) {
-        return CompletedWorkout.fromMap(doc.data(), id: doc.id);
-      }).toList();
-      
-      // Sort by timestamp descending
-      workouts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      
-      return workouts;
-    });
-  }
-
-  // Add/Remove workout to/from favorites
-  Future<void> toggleWorkoutFavorite(String workoutId) async {
-    final user = _auth.currentUser;
-    if (user == null) {
-      print('Error: User not logged in. Cannot toggle favorite.');
-      return;
-    }
-
-    final favoriteDoc = await _db
-        .collection('user_favorites')
-        .where('userId', isEqualTo: user.uid)
-        .where('workoutId', isEqualTo: workoutId)
-        .get();
-
-    if (favoriteDoc.docs.isEmpty) {
-      // Add to favorites
-      await _db.collection('user_favorites').add({
-        'userId': user.uid,
-        'workoutId': workoutId,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-      print('Workout added to favorites');
+    final workoutCollection = _db.collection('users').doc(userId).collection('workouts');
+    if (workout.id.isEmpty) {
+      // Add new workout
+      await workoutCollection.add(workout.toMap());
     } else {
-      // Remove from favorites
-      await _db.collection('user_favorites').doc(favoriteDoc.docs.first.id).delete();
-      print('Workout removed from favorites');
+      // Update existing workout
+      await workoutCollection.doc(workout.id).set(workout.toMap());
     }
   }
 
-  // Check if workout is favorited by current user
-  Future<bool> isWorkoutFavorited(String workoutId) async {
-    final user = _auth.currentUser;
-    if (user == null) return false;
-
-    final favoriteDoc = await _db
-        .collection('user_favorites')
-        .where('userId', isEqualTo: user.uid)
-        .where('workoutId', isEqualTo: workoutId)
-        .get();
-
-    return favoriteDoc.docs.isNotEmpty;
-  }
-
-  // Get favorite workouts for current user
-  Stream<List<Workout>> getFavoriteWorkoutsForCurrentUser() {
-    final user = _auth.currentUser;
-    if (user == null) {
-      return const Stream.empty();
+  // ✅ ADD THIS NEW METHOD FOR COMPLETED WORKOUTS ✅
+  Future<void> saveWorkoutCompletion(CompletedWorkout completedWorkout) async {
+    final userId = getCurrentUserId();
+    if (userId == null) {
+      throw Exception("User not logged in. Cannot save workout completion.");
     }
 
+    // Reference the 'completedWorkouts' subcollection under the user's document
+    final completedWorkoutsCollection = _db
+        .collection('users')
+        .doc(userId)
+        .collection('completedWorkouts');
+
+    // Add the completed workout to Firestore. Firestore will automatically generate an ID.
+    await completedWorkoutsCollection.add(completedWorkout.toMap());
+  }
+
+  // You might also have methods to fetch workouts, fetch completed workouts, etc.
+  // Example: Stream to get all completed workouts for the current user
+  Stream<List<CompletedWorkout>> getCompletedWorkouts() {
+    final userId = getCurrentUserId();
+    if (userId == null) {
+      return Stream.value([]); // Return an empty stream if no user
+    }
     return _db
-        .collection('user_favorites')
-        .where('userId', isEqualTo: user.uid)
+        .collection('users')
+        .doc(userId)
+        .collection('completedWorkouts')
+        .orderBy('timestamp', descending: true) // Order by latest completed
         .snapshots()
-        .asyncExpand((favoriteSnapshot) async* {
-      if (favoriteSnapshot.docs.isEmpty) {
-        yield <Workout>[];
-        return;
-      }
+        .map((snapshot) => snapshot.docs
+            .map((doc) => CompletedWorkout.fromMap(doc.data(), id: doc.id))
+            .toList());
+  }
 
-      final workoutIds = favoriteSnapshot.docs
-          .map((doc) => doc.data()['workoutId'] as String)
-          .toList();
-
-      // If we have more than 10 favorites, take the first 10 to avoid Firestore whereIn limit
-      final limitedWorkoutIds = workoutIds.take(10).toList();
-
-      if (limitedWorkoutIds.isEmpty) {
-        yield <Workout>[];
-        return;
-      }
-
-      // Get workout details for each favorited workout ID
-      yield* _db
-          .collection('workouts')
-          .where(FieldPath.documentId, whereIn: limitedWorkoutIds)
-          .snapshots()
-          .map((workoutSnapshot) {
-        return workoutSnapshot.docs.map((doc) {
-          return Workout.fromMap(doc.data(), id: doc.id);
-        }).toList();
-      });
-    });
+  // Example: Stream to get all workouts (not completed ones)
+  Stream<List<Workout>> getWorkouts() {
+    final userId = getCurrentUserId();
+    if (userId == null) {
+      return Stream.value([]);
+    }
+    return _db
+        .collection('users')
+        .doc(userId)
+        .collection('workouts')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Workout.fromMap(doc.data(), id: doc.id))
+            .toList());
   }
 }

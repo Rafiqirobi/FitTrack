@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:FitTrack/models/completed_workout_model.dart'; // Adjust import path
-// You might also need your Workout model if you use it for achievement logic etc.
-// import 'package:your_app_name/models/workout_model.dart';
+import 'package:FitTrack/models/completed_workout_model.dart'; // Adjust import path as needed
+
+// IMPORTANT: Ensure Firebase is initialized in your main.dart file like this:
+/*
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, // Make sure firebase_options.dart is generated and imported
+  );
+  runApp(const MyApp()); // Replace MyApp with your root widget
+}
+*/
 
 class StatsScreen extends StatefulWidget {
   final VoidCallback? onToggleTheme;
@@ -35,9 +44,10 @@ class _StatsScreenState extends State<StatsScreen> {
       setState(() {
         _userId = user.uid;
       });
+      print('Firebase Auth: User ID found: $_userId'); // Debug print
       await _fetchWorkoutData();
     } else {
-      print('User not logged in. Cannot fetch stats.');
+      print('Firebase Auth: User not logged in. Cannot fetch stats.'); // Debug print
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -48,6 +58,7 @@ class _StatsScreenState extends State<StatsScreen> {
 
   Future<void> _fetchWorkoutData() async {
     if (_userId == null) {
+      print('Firestore Fetch: User ID is null, stopping fetch.'); // Debug print
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -63,14 +74,21 @@ class _StatsScreenState extends State<StatsScreen> {
     }
 
     try {
+      print('Firestore Fetch: Attempting to fetch data for userId: $_userId'); // Debug print
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('completed_workouts')
           .where('userId', isEqualTo: _userId)
           .orderBy('timestamp', descending: true)
           .get();
 
+      print('Firestore Fetch: Found ${snapshot.docs.length} documents.'); // Debug print
+
       List<CompletedWorkout> fetchedCompletedWorkouts = snapshot.docs
-          .map((doc) => CompletedWorkout.fromMap(doc.data() as Map<String, dynamic>, id: doc.id))
+          .map((doc) {
+            // Debug print individual document data to check for parsing issues
+            // print('Document data: ${doc.data()}');
+            return CompletedWorkout.fromMap(doc.data() as Map<String, dynamic>, id: doc.id);
+          })
           .toList();
 
       int newTotalWorkouts = 0;
@@ -79,16 +97,26 @@ class _StatsScreenState extends State<StatsScreen> {
       List<int> newWeeklyWorkouts = List.filled(7, 0);
 
       DateTime now = DateTime.now();
-      DateTime startOfWeek = DateTime(now.year, now.month, now.day)
-          .subtract(Duration(days: now.weekday - 1));
+      // Adjust startOfWeek to always be Monday for consistency
+      // DateTime.weekday returns 1 for Monday, ..., 7 for Sunday
+      // This ensures 'startOfWeek' is always the Monday of the current week.
+      int currentDay = now.weekday; // 1 for Monday, 7 for Sunday
+      DateTime startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: currentDay - 1));
+
+      // Removed the `avgWorkoutsPerWeek` calculation here as it's now handled in the build method.
+      // The `_totalWorkoutsForAllTime` is implicitly `fetchedCompletedWorkouts.length`
+      // and directly used in the build method.
 
       for (var workoutRecord in fetchedCompletedWorkouts) {
         newTotalWorkouts++;
         newCaloriesBurned += workoutRecord.actualCaloriesBurned;
         newTotalMinutes += workoutRecord.actualDurationMinutes;
 
-        if (workoutRecord.timestamp.isAfter(startOfWeek) || workoutRecord.timestamp.isAtSameMomentAs(startOfWeek)) {
-          int dayIndex = workoutRecord.timestamp.weekday - 1;
+        // Check if the workout falls within the *current* week
+        // Ensure timestamp is not in the future and is on or after startOfWeek
+        if (workoutRecord.timestamp.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+            workoutRecord.timestamp.isBefore(startOfWeek.add(const Duration(days: 7)))) {
+          int dayIndex = workoutRecord.timestamp.weekday - 1; // Convert 1-7 (Mon-Sun) to 0-6
           if (dayIndex >= 0 && dayIndex < 7) {
             newWeeklyWorkouts[dayIndex]++;
           }
@@ -102,13 +130,15 @@ class _StatsScreenState extends State<StatsScreen> {
           _totalMinutes = newTotalMinutes;
           _weeklyWorkouts = newWeeklyWorkouts;
           _allCompletedWorkouts = fetchedCompletedWorkouts; // Assign fetched data to state variable
+          print('Stats Calculated: Total workouts: $_totalWorkouts, Calories: $_caloriesBurned, Minutes: $_totalMinutes'); // Debug print
+          print('Weekly Workouts: $_weeklyWorkouts'); // Debug print
         });
       }
     } catch (e) {
-      print('Error fetching workout data: $e');
+      print('Error fetching workout data: $e'); // Original error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load statistics: $e')),
+          SnackBar(content: Text('Failed to load statistics: ${e.toString()}')), // Use e.toString() for full error
         );
       }
     } finally {
@@ -128,6 +158,23 @@ class _StatsScreenState extends State<StatsScreen> {
     final Color hintColor = isDarkMode ? Colors.grey[600]! : Colors.grey[400]!;
     final Color cardColor = Theme.of(context).cardColor;
 
+    // Calculate Avg/Week value here to use the more robust calculation
+    double avgWorkoutsPerWeekValue = 0.0;
+    if (_allCompletedWorkouts.isNotEmpty) {
+      DateTime firstWorkoutDate = _allCompletedWorkouts.last.timestamp; // Oldest workout
+      DateTime latestWorkoutDate = _allCompletedWorkouts.first.timestamp; // Most recent workout
+      final differenceInDays = latestWorkoutDate.difference(firstWorkoutDate).inDays;
+      // Ensure at least one week is counted if there's any data
+      final numberOfWeeks = (differenceInDays / 7).ceil();
+
+      if (numberOfWeeks > 0) {
+        avgWorkoutsPerWeekValue = _totalWorkouts / numberOfWeeks;
+      } else {
+        avgWorkoutsPerWeekValue = _totalWorkouts.toDouble(); // All workouts in less than a week, so consider it 1 week's worth
+      }
+    }
+
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -145,14 +192,14 @@ class _StatsScreenState extends State<StatsScreen> {
           if (widget.onToggleTheme != null)
             IconButton(
               icon: Icon(
-                Theme.of(context).brightness == Brightness.dark 
-                    ? Icons.light_mode 
+                Theme.of(context).brightness == Brightness.dark
+                    ? Icons.light_mode
                     : Icons.dark_mode,
                 color: primaryColor,
               ),
               onPressed: widget.onToggleTheme,
-              tooltip: Theme.of(context).brightness == Brightness.dark 
-                  ? 'Switch to Light Mode' 
+              tooltip: Theme.of(context).brightness == Brightness.dark
+                  ? 'Switch to Light Mode'
                   : 'Switch to Dark Mode',
             ),
         ],
@@ -278,8 +325,8 @@ class _StatsScreenState extends State<StatsScreen> {
                         child: _buildStatCard(
                           context,
                           title: 'Avg/Week',
-                          // Corrected calculation for Avg/Week using _allCompletedWorkouts
-                          value: '${(_totalWorkouts / (_allCompletedWorkouts.isNotEmpty ? (_allCompletedWorkouts.length / 7).ceil() : 1)).toStringAsFixed(1)}',
+                          // Use the calculated average here
+                          value: avgWorkoutsPerWeekValue.toStringAsFixed(1),
                           icon: Icons.trending_up,
                         ),
                       ),
@@ -314,10 +361,10 @@ class _StatsScreenState extends State<StatsScreen> {
                               .asMap()
                               .entries
                               .map((entry) => _buildWeeklyBar(
-                                    context,
-                                    entry.value,
-                                    _weeklyWorkouts[entry.key],
-                                  ))
+                                  context,
+                                  entry.value,
+                                  _weeklyWorkouts[entry.key],
+                                ))
                               .toList(),
                         ),
                         const SizedBox(height: 16),
