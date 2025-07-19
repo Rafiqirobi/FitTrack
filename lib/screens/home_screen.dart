@@ -1,254 +1,491 @@
 import 'package:flutter/material.dart';
 
+// Ensure your main.dart or app setup includes a MaterialApp
+// with defined themes (light and dark) for primaryColor, scaffoldBackgroundColor,
+// cardColor, and textTheme to see the full effect.
+// Example:
+// class MyApp extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       title: 'FitTrack App',
+//       theme: ThemeData(
+//         primarySwatch: Colors.teal,
+//         scaffoldBackgroundColor: Colors.grey[50],
+//         cardColor: Colors.white,
+//         textTheme: TextTheme(
+//           headlineLarge: TextStyle(color: Colors.black87),
+//           headlineMedium: TextStyle(color: Colors.black87),
+//         ),
+//         appBarTheme: AppBarTheme(
+//           iconTheme: IconThemeData(color: Colors.black87),
+//         ),
+//       ),
+//       darkTheme: ThemeData(
+//         primarySwatch: Colors.teal,
+//         scaffoldBackgroundColor: Colors.grey[900],
+//         cardColor: Colors.grey[850],
+//         textTheme: TextTheme(
+//           headlineLarge: TextStyle(color: Colors.white),
+//           headlineMedium: TextStyle(color: Colors.white),
+//         ),
+//         appBarTheme: AppBarTheme(
+//           iconTheme: IconThemeData(color: Colors.white),
+//         ),
+//       ),
+//       themeMode: ThemeMode.system, // Or ThemeMode.dark / ThemeMode.light for testing
+//       initialRoute: '/',
+//       routes: {
+//         '/': (context) => HomeScreen(),
+//         '/workoutDetail': (context) => WorkoutDetailScreen(), // Replace with your actual screens
+//         '/browse': (context) => BrowseWorkoutsScreen(),       // Replace with your actual screens
+//       },
+//     );
+//   }
+// }
+
+
 class HomeScreen extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+// IMPORTANT: Add `with TickerProviderStateMixin` here!
+// This provides the `vsync` needed for AnimationControllers.
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _messageShown = false;
 
+  // --- Animation Controllers and Animations ---
+  // Declared as `late` because they are initialized in `initState`.
+
+  late AnimationController _headerController;
+  late Animation<Offset> _headerSlideAnimation;
+  late Animation<double> _headerFadeAnimation;
+
+  late AnimationController _statsController;
+  late Animation<Offset> _statsSlideAnimation;
+  late Animation<double> _statsFadeAnimation;
+
+  late AnimationController _quickStartController;
+  late Animation<double> _quickStartScaleAnimation;
+
+  late List<AnimationController> _categoryControllers;
+  late List<Animation<double>> _categoryFadeAnimations;
+  late List<Animation<Offset>> _categorySlideAnimations;
+
+  late AnimationController _motivationController;
+  late Animation<Offset> _motivationSlideAnimation;
+  late Animation<double> _motivationFadeAnimation;
+
+  @override
+  void initState() {
+    // !!! IMPORTANT: Always call super.initState() first !!!
+    // This ensures the State object is fully initialized before you
+    // attempt to set up late variables or animation controllers.
+    super.initState();
+
+    // --- Initialize Animation Controllers and Animations ---
+
+    // Header Animations (Welcome back! text)
+    _headerController = AnimationController(
+      vsync: this, // `this` refers to the TickerProviderStateMixin
+      duration: const Duration(milliseconds: 800),
+    );
+    _headerSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.2), // Starts slightly below its final position
+      end: Offset.zero,            // Ends at its natural position
+    ).animate(CurvedAnimation(
+      parent: _headerController,
+      curve: Curves.easeOutCubic, // Smooth deceleration
+    ));
+    _headerFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: _headerController, curve: Curves.easeIn)); // Fades in
+
+    // Quick Stats Animations
+    _statsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900), // Slightly longer
+    );
+    _statsSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _statsController,
+      curve: Curves.easeOutCubic,
+    ));
+    _statsFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: _statsController, curve: Curves.easeIn));
+
+    // Quick Start Card Animation
+    _quickStartController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000), // Longer for a more dramatic bounce
+    );
+    _quickStartScaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+        CurvedAnimation(
+            parent: _quickStartController, curve: Curves.elasticOut)); // Bouncy effect
+
+    // Category Cards Animations (staggered effect)
+    _categoryControllers = List.generate(
+      4, // Number of category cards
+      (index) => AnimationController(
+        vsync: this,
+        // Staggered duration: each card animates slightly after the previous one
+        duration: Duration(milliseconds: 800 + index * 100),
+      ),
+    );
+    _categoryFadeAnimations = _categoryControllers
+        .map((controller) =>
+            Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+              parent: controller,
+              curve: Curves.easeIn,
+            )))
+        .toList();
+    _categorySlideAnimations = _categoryControllers
+        .map((controller) =>
+            Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+                .animate(CurvedAnimation(
+              parent: controller,
+              curve: Curves.easeOutCubic,
+            )))
+        .toList();
+
+    // Motivation Card Animation
+    _motivationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200), // Longest for a late, smooth appearance
+    );
+    _motivationSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.4),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _motivationController,
+      curve: Curves.easeOutCubic,
+    ));
+    _motivationFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: _motivationController, curve: Curves.easeIn));
+
+    // Start all animations shortly after the initial build completes
+    // This gives Flutter a moment to lay out the widgets before animating them.
+    Future.delayed(const Duration(milliseconds: 200), () {
+      _headerController.forward();
+      _statsController.forward();
+      _quickStartController.forward();
+      for (var controller in _categoryControllers) {
+        controller.forward();
+      }
+      _motivationController.forward();
+    });
+  }
+
+  // --- Handling messages passed via route arguments (e.g., from login) ---
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
     if (!_messageShown) {
+      // Safely try to get arguments from the current route
       final message = ModalRoute.of(context)?.settings.arguments as String?;
       if (message != null && message.isNotEmpty) {
+        // Schedule the SnackBar to show after the first frame is rendered
+        // This prevents "setState() or markNeedsBuild() called during build" errors
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
+            SnackBar(
+              content: Text(message),
+              behavior: SnackBarBehavior.floating, // Modern floating style
+              margin: EdgeInsets.all(16.0), // Margin around the SnackBar
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10), // Rounded corners
+              ),
+            ),
           );
         });
-        _messageShown = true;
+        _messageShown = true; // Prevent showing the message multiple times
       }
     }
   }
 
+  // --- Dispose Animation Controllers to prevent memory leaks ---
+  @override
+  void dispose() {
+    _headerController.dispose();
+    _statsController.dispose();
+    _quickStartController.dispose();
+    for (var controller in _categoryControllers) {
+      controller.dispose(); // Dispose each controller in the list
+    }
+    _motivationController.dispose();
+    super.dispose(); // Always call super.dispose() last
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Determine if the current theme is dark for responsive coloring
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: Colors.transparent, // Transparent AppBar
+        elevation: 0, // No shadow under AppBar
         title: Text(
           'FitTrack',
           style: TextStyle(
-            color: Theme.of(context).primaryColor,
+            color: Theme.of(context).primaryColor, // Use primary color for branding
             fontWeight: FontWeight.bold,
-            fontSize: 24,
+            fontSize: 26, // Slightly larger
+            letterSpacing: 1.2, // Adds a subtle, modern touch
           ),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+      body: SafeArea( // Ensures content doesn't go under notches/status bar
+        child: SingleChildScrollView( // Allows content to scroll if it overflows
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0), // Adjusted padding
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start, // Align children to the start (left)
             children: [
-              // Welcome header
-              Text(
-                'Welcome back!',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.headlineMedium?.color,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Ready to crush your fitness goals?',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 16,
-                ),
-              ),
-              SizedBox(height: 30),
-
-              // Quick Stats Row
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      'Today\'s Goal',
-                      '30 min',
-                      Icons.flag_outlined,
-                      Theme.of(context).primaryColor.withOpacity(0.1),
+              // Welcome header (with Fade and Slide Animations)
+              FadeTransition(
+                opacity: _headerFadeAnimation,
+                child: SlideTransition(
+                  position: _headerSlideAnimation,
+                  child: Text(
+                    'Welcome back, Fitness Enthusiast!', // More engaging welcome message
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
+                      fontSize: 32, // Larger and more prominent
+                      fontWeight: FontWeight.w800, // Extra bold
                     ),
                   ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
-                      'This Week',
-                      '4 workouts',
-                      Icons.calendar_today_outlined,
-                      Colors.orange.withOpacity(0.1),
+                ),
+              ),
+              FadeTransition( // Apply animation to the second line of text as well
+                opacity: _headerFadeAnimation,
+                child: SlideTransition(
+                  position: _headerSlideAnimation,
+                  child: Text(
+                    'Ready to crush your fitness goals today?', // More direct question
+                    style: TextStyle(
+                      color: Colors.grey[isDarkMode ? 400 : 700], // Adjust color for dark mode
+                      fontSize: 17,
                     ),
                   ),
-                ],
+                ),
               ),
-              SizedBox(height: 30),
+              SizedBox(height: 35), // Increased spacing
 
-              // Quick Start Card
+              // Quick Stats Row (with Fade and Slide Animations)
+              FadeTransition(
+                opacity: _statsFadeAnimation,
+                child: SlideTransition(
+                  position: _statsSlideAnimation,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          'Today\'s Goal',
+                          '30 min',
+                          Icons.flag_outlined,
+                          Theme.of(context).primaryColor.withOpacity(0.15), // Slightly more opaque background
+                          Theme.of(context).primaryColor, // Icon color matches primary
+                          isDarkMode,
+                        ),
+                      ),
+                      SizedBox(width: 18), // Slightly increased spacing
+                      Expanded(
+                        child: _buildStatCard(
+                          'This Week',
+                          '4 workouts',
+                          Icons.calendar_today_outlined,
+                          Colors.orange.withOpacity(0.15),
+                          Colors.orange, // Icon color matches orange
+                          isDarkMode,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 35), // Increased spacing
+
+              // Quick Start Card - Section Title
               Text(
                 'Quick Start',
                 style: TextStyle(
-                  color: Theme.of(context).textTheme.headlineMedium?.color,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.headlineMedium?.color ?? (isDarkMode ? Colors.white : Colors.black87),
+                  fontSize: 22, // Slightly larger
+                  fontWeight: FontWeight.w700, // Bolder
                 ),
               ),
-              SizedBox(height: 16),
-              
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).primaryColor.withOpacity(0.8),
-                      Theme.of(context).primaryColor.withOpacity(0.6),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).primaryColor.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: Offset(0, 10),
+              SizedBox(height: 18), // Slightly increased spacing
+
+              // Quick Start Card (with Scale Animation for bouncy effect)
+              ScaleTransition(
+                scale: _quickStartScaleAnimation,
+                child: Container(
+                  width: double.infinity, // Takes full width
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient( // Vibrant gradient
+                      colors: [
+                        Theme.of(context).primaryColor, // Use primary color directly for stronger effect
+                        Theme.of(context).primaryColor.withOpacity(0.7),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/workoutDetail',
-                        arguments: 'Quick Start Workout',
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Icon(
-                                Icons.flash_on,
-                                color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                                size: 32,
-                              ),
-                              Icon(
-                                Icons.play_arrow,
-                                color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                                size: 32,
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Quick Start Workout',
-                            style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                    borderRadius: BorderRadius.circular(25), // More rounded corners
+                    // Shadow removed as per request for a flatter look
+                  ),
+                  child: Material( // Ensures InkWell ripple effect works correctly
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(25),
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/workoutDetail',
+                          arguments: 'Quick Start Workout', // Pass data to the detail screen
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(28.0), // More padding
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Icon(
+                                  Icons.flash_on, // Flash icon for quickness
+                                  color: isDarkMode ? Colors.black : Colors.white, // Invert color for contrast on gradient
+                                  size: 36, // Larger icon
+                                ),
+                                Icon(
+                                  Icons.play_circle_fill, // Clear play icon
+                                  color: isDarkMode ? Colors.black : Colors.white,
+                                  size: 40, // Larger icon
+                                ),
+                              ],
                             ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'HIIT • 20 minutes • All levels',
-                            style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black87 : Colors.white70,
-                              fontSize: 14,
+                            SizedBox(height: 20), // Increased spacing
+                            Text(
+                              'Quick Start Full Body HIIT', // More descriptive title
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.black : Colors.white,
+                                fontSize: 22, // Larger font
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        ],
+                            SizedBox(height: 10),
+                            Text(
+                              'High Intensity • 20 minutes • All levels', // Clarified description
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.black87 : Colors.white70,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
 
-              SizedBox(height: 30),
+              SizedBox(height: 35), // Increased spacing
 
-              // Workout Categories
+              // Workout Categories - Section Title
               Text(
-                'Workout Categories',
+                'Explore Workouts', // More inviting title
                 style: TextStyle(
-                  color: Theme.of(context).textTheme.headlineMedium?.color,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.headlineMedium?.color ?? (isDarkMode ? Colors.white : Colors.black87),
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 18),
 
+              // Workout Categories Grid (with staggered Fade and Slide Animations)
               GridView.count(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.2,
-                children: [
-                  _buildCategoryCard('Strength', Icons.fitness_center, Colors.red),
-                  _buildCategoryCard('Cardio', Icons.directions_run, Colors.blue),
-                  _buildCategoryCard('Yoga', Icons.self_improvement, Colors.green),
-                  _buildCategoryCard('HIIT', Icons.whatshot, Colors.orange),
-                ],
+                shrinkWrap: true, // Takes only as much space as its children need
+                physics: NeverScrollableScrollPhysics(), // Prevents nested scrolling
+                crossAxisCount: 2, // 2 cards per row
+                crossAxisSpacing: 18, // Spacing between columns
+                mainAxisSpacing: 18, // Spacing between rows
+                childAspectRatio: 1.1, // Adjusted aspect ratio for better look
+                children: List.generate( // Dynamically generate cards with animations
+                  4, // Number of category cards
+                  (index) => FadeTransition(
+                    opacity: _categoryFadeAnimations[index], // Apply individual fade animation
+                    child: SlideTransition(
+                      position: _categorySlideAnimations[index], // Apply individual slide animation
+                      child: _buildCategoryCard(
+                        // Data for each card (matched by index)
+                        ['Strength', 'Cardio', 'Yoga & Stretch', 'Quick HIIT'][index],
+                        [Icons.fitness_center, Icons.directions_run, Icons.self_improvement, Icons.flash_on][index],
+                        [Colors.deepOrange, Colors.lightBlue, Colors.lightGreen, Colors.purple][index],
+                        isDarkMode,
+                      ),
+                    ),
+                  ),
+                ),
               ),
 
-              SizedBox(height: 30),
+              SizedBox(height: 35),
 
-              // Today's Motivation
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              // Today's Motivation Card (with Fade and Slide Animations)
+              FadeTransition(
+                opacity: _motivationFadeAnimation,
+                child: SlideTransition(
+                  position: _motivationSlideAnimation,
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(24), // More padding
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor, // Uses theme's card color
+                      borderRadius: BorderRadius.circular(20), // More rounded
+                      border: Border.all(color: Colors.grey.withOpacity(0.15)), // Subtle border
+                      // Shadow removed as per request
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.lightbulb_outline,
-                          color: Theme.of(context).primaryColor,
-                          size: 24,
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.lightbulb_outline, // Lightbulb icon
+                              color: Theme.of(context).primaryColor, // Icon color matches primary
+                              size: 28, // Slightly larger
+                            ),
+                            SizedBox(width: 14), // More spacing
+                            Text(
+                              'Daily Inspiration', // More engaging title
+                              style: TextStyle(
+                                color: Theme.of(context).textTheme.headlineMedium?.color ?? (isDarkMode ? Colors.white : Colors.black87),
+                                fontSize: 20, // Slightly larger
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 12),
+                        SizedBox(height: 16), // More spacing
                         Text(
-                          'Today\'s Motivation',
+                          '"The only bad workout is the one that didn\'t happen. Consistency is key!"', // Enhanced quote
                           style: TextStyle(
-                            color: Theme.of(context).textTheme.headlineMedium?.color,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[isDarkMode ? 400 : 700], // Adjust color for dark mode
+                            fontSize: 17, // Slightly larger
+                            fontStyle: FontStyle.italic,
+                            height: 1.4, // Improve line spacing for readability
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 12),
-                    Text(
-                      '"The only bad workout is the one that didn\'t happen."',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 16,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
+              SizedBox(height: 20), // Padding at the very bottom
             ],
           ),
         ),
@@ -256,32 +493,36 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  // --- Helper Widget for Stat Cards ---
+  Widget _buildStatCard(String title, String value, IconData icon,
+      Color backgroundColor, Color iconColor, bool isDarkMode) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(20), // More padding
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
+        color: backgroundColor, // Background color passed in
+        borderRadius: BorderRadius.circular(20), // More rounded
+        border: Border.all(color: Colors.grey.withOpacity(0.1)), // Subtle border
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Theme.of(context).primaryColor, size: 24),
-          SizedBox(height: 8),
+          Icon(icon, color: iconColor, size: 28), // Icon with specified color and size
+          SizedBox(height: 10),
           Text(
             value,
             style: TextStyle(
-              color: Theme.of(context).textTheme.headlineMedium?.color,
-              fontSize: 20,
+              color: Theme.of(context).textTheme.headlineMedium?.color ??
+                  (isDarkMode ? Colors.white : Colors.black),
+              fontSize: 22, // Larger font
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 4),
+          SizedBox(height: 6),
           Text(
             title,
             style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
+              color: Colors.grey[isDarkMode ? 400 : 700],
+              fontSize: 15,
             ),
           ),
         ],
@@ -289,44 +530,49 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoryCard(String title, IconData icon, Color color) {
+  // --- Helper Widget for Category Cards ---
+  Widget _buildCategoryCard(
+      String title, IconData icon, Color color, bool isDarkMode) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        color: Theme.of(context).cardColor, // Uses theme's card color
+        borderRadius: BorderRadius.circular(20), // More rounded
+        border: Border.all(color: Colors.grey.withOpacity(0.15)), // Slightly more prominent border
+        // Shadow removed as per request
       ),
-      child: Material(
+      child: Material( // Allows InkWell ripple effect
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           onTap: () {
-            Navigator.pushNamed(context, '/browse');
+            Navigator.pushNamed(context, '/browse'); // Navigate to browse screen
           },
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0), // More padding
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center, // Center content vertically
               children: [
                 Container(
-                  padding: EdgeInsets.all(12),
+                  padding: EdgeInsets.all(14), // Padding inside icon container
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: color.withOpacity(0.15), // Category specific color with opacity
+                    borderRadius: BorderRadius.circular(15), // Rounded icon background
                   ),
                   child: Icon(
                     icon,
-                    color: color,
-                    size: 28,
+                    color: color, // Category specific icon color
+                    size: 32, // Larger icon
                   ),
                 ),
-                SizedBox(height: 12),
+                SizedBox(height: 14), // More spacing
                 Text(
                   title,
+                  textAlign: TextAlign.center, // Center text for better appearance
                   style: TextStyle(
-                    color: Theme.of(context).textTheme.headlineMedium?.color,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).textTheme.headlineMedium?.color ??
+                        (isDarkMode ? Colors.white : Colors.black87),
+                    fontSize: 17, // Slightly larger
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],

@@ -1,18 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:FitTrack/models/completed_workout_model.dart'; // Adjust import path
-import 'package:FitTrack/models/workout_model.dart'; // Adjust import path
-
+import 'package:FitTrack/models/completed_workout_model.dart';
+import 'package:FitTrack/models/workout_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Function to save a completed workout record to Firestore
+  // Save completed workout
   Future<void> saveWorkoutCompletion({
-    required Workout workoutDetails, // The original workout object template
-    required int finalDurationMinutes, // The actual duration user spent in minutes
-    required int finalCaloriesBurned, // The actual calories user burned
+    required Workout workoutDetails,
+    required int finalDurationMinutes,
+    required int finalCaloriesBurned,
   }) async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -21,7 +20,7 @@ class FirestoreService {
     }
 
     final completedWorkout = CompletedWorkout(
-      id: '', // Firestore will assign this ID upon adding the document
+      id: '',
       userId: user.uid,
       workoutId: workoutDetails.id,
       workoutName: workoutDetails.name,
@@ -33,19 +32,38 @@ class FirestoreService {
 
     try {
       await _db.collection('completed_workouts').add(completedWorkout.toMap());
-      print('Workout completion recorded successfully for user ${user.uid}!');
+      print('Workout completion recorded for user ${user.uid}');
     } catch (e) {
-      print('Failed to record workout completion: $e');
-      rethrow; // Re-throw the error to be handled by the calling UI if necessary
+      print('Failed to save workout: $e');
+      rethrow;
     }
   }
 
-  // Example: Function to fetch all workouts (your existing workout list)
-  // This is typically used for the workout selection screen
+  // Fetch all available workouts (static template)
   Stream<List<Workout>> getWorkouts() {
-    return _db.collection('workouts').snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => Workout.fromMap(doc.data(), id: doc.id)).toList());
+    return _db.collection('workouts').snapshots().map(
+      (snapshot) => snapshot.docs
+          .map((doc) => Workout.fromMap(doc.data(), id: doc.id))
+          .toList(),
+    );
   }
 
-  // You can add more Firestore-related functions here (e.g., getting user goals, specific workout details)
+  // ✅ NEW: Fetch completed workouts for the current user
+  Stream<List<CompletedWorkout>> getCompletedWorkoutsForCurrentUser() {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return const Stream.empty();
+    }
+
+    return _db
+        .collection('completed_workouts')
+        .where('userId', isEqualTo: user.uid)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return CompletedWorkout.fromMap(doc.data(), id: doc.id);
+      }).toList();
+    });
+  }
 }
