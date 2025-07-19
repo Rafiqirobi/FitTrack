@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'services/notification_service.dart';
 //import 'utils/firebase_seed.dart'; // Workout seeding completed
 
 // Screens
@@ -13,6 +14,7 @@ import 'screens/workout_timer_screen.dart';
 import 'screens/reps_screen.dart';
 import 'screens/favourites_screen.dart';
 import 'screens/nav_bottom_bar.dart'; // Main navigation
+import 'screens/notification_test_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,24 +43,52 @@ class _FitTrackAppState extends State<FitTrackApp> {
   Future<void> _initializeApp() async {
     // Workout data seeding completed - commenting out to prevent re-running
     //await seedWorkoutData();
+    
+    // Load theme first before initializing other services
     await _loadTheme();
+    
+    // Initialize notifications
+    final notificationService = NotificationService();
+    await notificationService.initializeNotifications();
+    await notificationService.requestPermissions();
+    
+    // Set up daily motivational quotes at 9 AM
+    await notificationService.scheduleMotivationalQuote();
   }
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool('isDarkTheme') ?? true;
-    setState(() {
-      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    });
+    final isDark = prefs.getBool('isDarkTheme');
+    
+    if (isDark == null) {
+      // First time launch - set default to dark mode and save it
+      setState(() {
+        _themeMode = ThemeMode.dark;
+      });
+      await prefs.setBool('isDarkTheme', true);
+    } else {
+      // Load saved preference
+      setState(() {
+        _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+      });
+    }
   }
 
   void _toggleTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDark = _themeMode == ThemeMode.dark;
+    final isCurrentlyDark = _themeMode == ThemeMode.dark;
+    
+    // Update UI state
     setState(() {
-      _themeMode = isDark ? ThemeMode.light : ThemeMode.dark;
+      _themeMode = isCurrentlyDark ? ThemeMode.light : ThemeMode.dark;
     });
-    await prefs.setBool('isDarkTheme', !isDark);
+    
+    // Save the NEW theme state (opposite of current)
+    await prefs.setBool('isDarkTheme', !isCurrentlyDark);
+    
+    // Debug print to verify saving
+    print('🎨 Theme toggled to: ${!isCurrentlyDark ? 'Dark' : 'Light'} mode');
+    print('🔄 Saved to SharedPreferences: isDarkTheme = ${!isCurrentlyDark}');
   }
 
   @override
@@ -80,6 +110,7 @@ class _FitTrackAppState extends State<FitTrackApp> {
         '/workoutTimer': (context) => WorkoutTimerScreen(),
         '/repsScreen': (context) => RepsScreen(),
         '/favourites': (context) => FavouritesScreen(),
+        '/notificationTest': (context) => NotificationTestScreen(),
       },
     );
   }

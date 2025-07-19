@@ -325,7 +325,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'Workout Complete!',
+          'WORKOUT COMPLETE!',
           style: TextStyle(
             color: primaryColor,
             fontWeight: FontWeight.bold,
@@ -410,7 +410,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
-            'Exercise ${currentStepIndex + 1} of ${steps.length}',
+            'EXERCISE ${currentStepIndex + 1} OF ${steps.length}',
             style: TextStyle(
               color: primaryColor,
               fontWeight: FontWeight.bold,
@@ -541,7 +541,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
-            'Workout Timer',
+            'WORKOUT TIMER',
             style: TextStyle(
               color: primaryColor,
               fontWeight: FontWeight.bold,

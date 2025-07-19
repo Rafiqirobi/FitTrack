@@ -33,7 +33,7 @@ class _NavBottomBarState extends State<NavBottomBar> {
       HomeScreen(onToggleTheme: widget.onToggleTheme),
       BrowseScreen(onToggleTheme: widget.onToggleTheme),
       StatsScreen(onToggleTheme: widget.onToggleTheme),
-      ProfileScreen(),
+      ProfileScreen(onToggleTheme: widget.onToggleTheme),
     ];
   }
 

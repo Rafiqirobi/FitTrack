@@ -93,10 +93,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // --- Animation Controllers and Animations ---
   // Declared as `late` because they are initialized in `initState`.
 
-  late AnimationController _headerController;
-  late Animation<Offset> _headerSlideAnimation;
-  late Animation<double> _headerFadeAnimation;
-
   late AnimationController _statsController;
   late Animation<Offset> _statsSlideAnimation;
   late Animation<double> _statsFadeAnimation;
@@ -544,21 +540,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // --- Initialize Animation Controllers and Animations ---
 
-    // Header Animations (Welcome back! text)
-    _headerController = AnimationController(
-      vsync: this, // `this` refers to the TickerProviderStateMixin
-      duration: const Duration(milliseconds: 800),
-    );
-    _headerSlideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.2), // Starts slightly below its final position
-      end: Offset.zero,            // Ends at its natural position
-    ).animate(CurvedAnimation(
-      parent: _headerController,
-      curve: Curves.easeOutCubic, // Smooth deceleration
-    ));
-    _headerFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _headerController, curve: Curves.easeIn)); // Fades in
-
     // Quick Stats Animations
     _statsController = AnimationController(
       vsync: this,
@@ -623,7 +604,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Start all animations shortly after the initial build completes
     // This gives Flutter a moment to lay out the widgets before animating them.
     Future.delayed(const Duration(milliseconds: 200), () {
-      _headerController.forward();
       _statsController.forward();
       _quickStartController.forward();
       for (var controller in _categoryControllers) {
@@ -663,7 +643,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // --- Dispose Animation Controllers to prevent memory leaks ---
   @override
   void dispose() {
-    _headerController.dispose();
     _statsController.dispose();
     _quickStartController.dispose();
     for (var controller in _categoryControllers) {
@@ -690,9 +669,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           'FitTrack',
           style: TextStyle(
             color: Theme.of(context).primaryColor, // Use primary color for branding
-            fontWeight: FontWeight.bold,
-            fontSize: 26, // Slightly larger
-            letterSpacing: 1.2, // Adds a subtle, modern touch
+            fontWeight: FontWeight.w900, // Heavy weight like splash screen
+            fontStyle: FontStyle.italic, // Italic like splash screen
+            fontSize: 28, // Slightly larger for app bar
+            letterSpacing: 1.5, // Consistent with splash screen
+            fontFamily: 'HeadingNow91-98', // Same font as splash screen
+            shadows: [
+              Shadow(
+                color: Theme.of(context).primaryColor.withOpacity(0.3),
+                blurRadius: 5,
+                offset: const Offset(1, 1),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -722,80 +710,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start, // Align children to the start (left)
                 children: [
-              // Welcome header (with Fade and Slide Animations)
-              FadeTransition(
-                opacity: _headerFadeAnimation,
-                child: SlideTransition(
-                  position: _headerSlideAnimation,
-                  child: GestureDetector(
-                    onTap: _generateRandomQuote, // Tap to get a new quote
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          if (_loadingQuote)
-                            CircularProgressIndicator(
-                              color: Theme.of(context).primaryColor,
-                              strokeWidth: 2,
-                            )
-                          else if (_currentQuote != null)
-                            Column(
-                              children: [
-                                Text(
-                                  '"${_currentQuote!.text}"',
-                                  style: TextStyle(
-                                    color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w600,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  '- ${_currentQuote!.author}',
-                                  style: TextStyle(
-                                    color: Theme.of(context).primaryColor,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            )
-                          else
-                            Text(
-                              'Welcome back, Fitness Enthusiast!',
-                              style: TextStyle(
-                                color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              FadeTransition( // Apply animation to the second line of text as well
-                opacity: _headerFadeAnimation,
-                child: SlideTransition(
-                  position: _headerSlideAnimation,
-                  child: Text(
-                    'Tap the quote above for daily inspiration!', // Updated hint about tapping for new quotes
-                    style: TextStyle(
-                      color: Colors.grey[isDarkMode ? 400 : 700], // Adjust color for dark mode
-                      fontSize: 15, // Slightly smaller to accommodate the hint
-                    ),
-                    textAlign: TextAlign.center, // Center align to match the main title
-                  ),
-                ),
-              ),
-              SizedBox(height: 35), // Increased spacing
-
               // Quick Stats Row (with Fade and Slide Animations)
               FadeTransition(
                 opacity: _statsFadeAnimation,
@@ -832,6 +746,180 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 35), // Increased spacing
+
+              // Motivational Quote Card (with Fade and Slide Animations)
+              FadeTransition(
+                opacity: _statsFadeAnimation,
+                child: SlideTransition(
+                  position: _statsSlideAnimation,
+                  child: GestureDetector(
+                    onTap: _generateRandomQuote, // Tap to get a new quote
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.symmetric(horizontal: 5),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isDarkMode 
+                            ? [
+                                Theme.of(context).primaryColor.withOpacity(0.2),
+                                Theme.of(context).primaryColor.withOpacity(0.1),
+                              ]
+                            : [
+                                Theme.of(context).primaryColor.withOpacity(0.1),
+                                Theme.of(context).primaryColor.withOpacity(0.05),
+                              ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Theme.of(context).primaryColor.withOpacity(0.2),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context).primaryColor.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Quote icon
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: Icon(
+                                Icons.format_quote,
+                                color: Theme.of(context).primaryColor,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // Quote content
+                            if (_loadingQuote)
+                              Column(
+                                children: [
+                                  CircularProgressIndicator(
+                                    color: Theme.of(context).primaryColor,
+                                    strokeWidth: 2,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Loading inspiration...',
+                                    style: TextStyle(
+                                      color: Colors.grey[isDarkMode ? 400 : 600],
+                                      fontSize: 14,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else if (_currentQuote != null)
+                              Column(
+                                children: [
+                                  Text(
+                                    '"${_currentQuote!.text}"',
+                                    style: TextStyle(
+                                      color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w500,
+                                      fontStyle: FontStyle.italic,
+                                      height: 1.4,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        width: 30,
+                                        height: 1,
+                                        color: Theme.of(context).primaryColor.withOpacity(0.5),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _currentQuote!.author,
+                                        style: TextStyle(
+                                          color: Theme.of(context).primaryColor,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        width: 30,
+                                        height: 1,
+                                        color: Theme.of(context).primaryColor.withOpacity(0.5),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              )
+                            else
+                              Column(
+                                children: [
+                                  Text(
+                                    'Welcome back!',
+                                    style: TextStyle(
+                                      color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Ready to crush your fitness goals?',
+                                    style: TextStyle(
+                                      color: Theme.of(context).primaryColor,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            
+                            const SizedBox(height: 16),
+                            // Tap hint with refresh icon
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.refresh,
+                                  color: Colors.grey[isDarkMode ? 500 : 600],
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Tap for new inspiration',
+                                  style: TextStyle(
+                                    color: Colors.grey[isDarkMode ? 500 : 600],
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1056,13 +1144,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               SizedBox(height: 35), // Increased spacing
 
               // Workout Categories - Section Title
-              Text(
-                'Explore Workouts', // More inviting title
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.headlineMedium?.color ?? (isDarkMode ? Colors.white : Colors.black87),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Explore Workouts', // More inviting title
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.headlineMedium?.color ?? (isDarkMode ? Colors.white : Colors.black87),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  // View More button
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/browse');
+                    },
+                    icon: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    label: Text(
+                      'View More',
+                      style: TextStyle(
+                        color: Theme.of(context).primaryColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
               ),
               SizedBox(height: 18),
 
@@ -1145,6 +1262,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildStatCard(String title, String value, IconData icon,
       Color backgroundColor, Color iconColor, bool isDarkMode) {
     return Container(
+      height: 140, // Fixed height to match goal card
       padding: EdgeInsets.all(20), // More padding
       decoration: BoxDecoration(
         color: backgroundColor, // Background color passed in
@@ -1153,25 +1271,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribute space evenly
         children: [
           Icon(icon, color: iconColor, size: 28), // Icon with specified color and size
-          SizedBox(height: 10),
-          Text(
-            value,
-            style: TextStyle(
-              color: Theme.of(context).textTheme.headlineMedium?.color ??
-                  (isDarkMode ? Colors.white : Colors.black),
-              fontSize: 22, // Larger font
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 6),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.grey[isDarkMode ? 400 : 700],
-              fontSize: 15,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.headlineMedium?.color ??
+                      (isDarkMode ? Colors.white : Colors.black),
+                  fontSize: 22, // Larger font
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.grey[isDarkMode ? 400 : 700],
+                  fontSize: 15,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1181,9 +1304,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Goal stat card with progress indicator
   Widget _buildGoalStatCard(String title, String value, IconData icon,
       Color backgroundColor, Color iconColor, bool isDarkMode, int current, int goal) {
-    double progress = goal > 0 ? (current / goal).clamp(0.0, 1.0) : 0.0;
-    
     return Container(
+      height: 140, // Fixed height to match other stat card
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: backgroundColor,
@@ -1192,6 +1314,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribute space evenly
         children: [
           Row(
             children: [
@@ -1200,44 +1323,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Icon(Icons.edit, color: Colors.grey[isDarkMode ? 400 : 600], size: 18),
             ],
           ),
-          SizedBox(height: 10),
-          Text(
-            value,
-            style: TextStyle(
-              color: Theme.of(context).textTheme.headlineMedium?.color ??
-                  (isDarkMode ? Colors.white : Colors.black),
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 6),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.grey[isDarkMode ? 400 : 700],
-              fontSize: 15,
-            ),
-          ),
-          SizedBox(height: 10),
-          // Progress bar
-          Container(
-            height: 8,
-            decoration: BoxDecoration(
-              color: Colors.grey[isDarkMode ? 600 : 300],
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: (MediaQuery.of(context).size.width - 80) * 0.4 * progress, // Approximate width calculation
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: current >= goal ? Colors.green : iconColor,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.headlineMedium?.color ??
+                      (isDarkMode ? Colors.white : Colors.black),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.grey[isDarkMode ? 400 : 700],
+                  fontSize: 15,
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -167,7 +167,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Text(
-          'Workout Details',
+          'WORKOUT DETAILS',
           style: TextStyle(
             color: primaryColor,
             fontWeight: FontWeight.bold,

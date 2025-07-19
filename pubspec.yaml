@@ -40,6 +40,9 @@ dependencies:
   audioplayers: ^5.2.1
   confetti: ^0.7.0
   http: ^1.1.0
+  flutter_local_notifications: ^17.2.1+2
+  timezone: ^0.9.4
+  url_launcher: ^6.3.1
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -90,7 +93,17 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
+  fonts:
+    - family: HeadingNow91-98
+      fonts:
+        - asset: fonts/HeadingNow91-98-Regular.ttf
+        - asset: fonts/HeadingNow91-98-Bold.ttf
+          weight: 700
+        - asset: fonts/HeadingNow91-98-BoldItalic.ttf
+          weight: 700
+          style: italic
+        - asset: fonts/HeadingNow91-98-Italic.ttf
+          style: italic
   #   - family: Schyler
   #     fonts:
   #       - asset: fonts/Schyler-Regular.ttf

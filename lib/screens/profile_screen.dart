@@ -3,8 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import '../helpers/session_manager.dart';
+import 'about_fittrack_screen.dart';
+import 'notification_settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
+  final VoidCallback? onToggleTheme;
+
+  const ProfileScreen({Key? key, this.onToggleTheme}) : super(key: key);
+
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
@@ -49,17 +55,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+          backgroundColor: Theme.of(context).cardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.delete_sweep_outlined, color: Colors.red),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Clear Workout History',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.headlineMedium?.color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18, // Slightly smaller font size
+                  ),
+                ),
+              ),
+            ],
           ),
-          title: Text('Clear Workout History'),
-          content: Text('Are you sure you want to delete all your workout history? This action cannot be undone.'),
+          content: SingleChildScrollView(
+            child: Text(
+              'Are you sure you want to delete all your workout history? This action cannot be undone.',
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
                 Navigator.pop(context);
                 try {
@@ -80,24 +110,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Workout history cleared successfully'),
+                        content: Text('🗑️ Workout history cleared successfully'),
                         backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     );
                   }
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Failed to clear workout history'),
+                      content: Text('❌ Failed to clear workout history'),
                       backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   );
                 }
               },
-              child: Text(
-                'Clear History',
-                style: TextStyle(color: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
+              child: Text('Clear History'),
             ),
           ],
         );
@@ -106,6 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showEditDialog() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final usernameController = TextEditingController(text: _username);
     final emailController = TextEditingController(text: _email);
     final passwordController = TextEditingController();
@@ -114,36 +151,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+          backgroundColor: Theme.of(context).cardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.edit_outlined, color: Theme.of(context).primaryColor),
+              SizedBox(width: 10),
+              Text(
+                'Edit Profile',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.headlineMedium?.color,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-          title: Text('Edit Profile'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: usernameController,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Username',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person, color: Theme.of(context).primaryColor),
+                    labelStyle: TextStyle(
+                      color: Colors.grey[isDarkMode ? 400 : 600],
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[isDarkMode ? 600 : 300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[isDarkMode ? 600 : 300]!),
+                    ),
                   ),
                 ),
                 SizedBox(height: 16),
                 TextField(
                   controller: emailController,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email, color: Theme.of(context).primaryColor),
+                    labelStyle: TextStyle(
+                      color: Colors.grey[isDarkMode ? 400 : 600],
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[isDarkMode ? 600 : 300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[isDarkMode ? 600 : 300]!),
+                    ),
                   ),
                 ),
                 SizedBox(height: 16),
                 TextField(
                   controller: passwordController,
                   obscureText: true,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'New Password (optional)',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock, color: Theme.of(context).primaryColor),
+                    labelStyle: TextStyle(
+                      color: Colors.grey[isDarkMode ? 400 : 600],
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[isDarkMode ? 600 : 300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[isDarkMode ? 600 : 300]!),
+                    ),
                   ),
                 ),
               ],
@@ -152,9 +254,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
                 Navigator.pop(context);
                 await _updateProfile(
@@ -163,6 +268,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   passwordController.text,
                 );
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
               child: Text('Save'),
             ),
           ],
@@ -227,6 +337,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          if (widget.onToggleTheme != null)
+            IconButton(
+              icon: Icon(
+                Theme.of(context).brightness == Brightness.dark 
+                    ? Icons.light_mode 
+                    : Icons.dark_mode,
+                color: Theme.of(context).primaryColor,
+              ),
+              onPressed: widget.onToggleTheme,
+              tooltip: Theme.of(context).brightness == Brightness.dark 
+                  ? 'Switch to Light Mode' 
+                  : 'Switch to Dark Mode',
+            ),
+        ],
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
@@ -300,14 +425,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // Profile Options
                   _buildSection('Settings', [
                     _buildTile(Icons.edit_outlined, 'Edit Profile', _showEditDialog, context),
-                    _buildTile(Icons.notifications_outlined, 'Notifications', () {}, context),
+                    _buildTile(Icons.notifications_outlined, 'Notifications', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NotificationSettingsScreen(),
+                        ),
+                      );
+                    }, context),
                   ], context),
 
                   SizedBox(height: 20),
 
                   _buildSection('Data Management', [
                     _buildTile(Icons.delete_sweep_outlined, 'Clear Workout History', _clearWorkoutHistory, context),
-                    _buildTile(Icons.info_outline, 'About FitTrack', () {}, context),
+                    _buildTile(Icons.info_outline, 'About FitTrack', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AboutFitTrackScreen(),
+                        ),
+                      );
+                    }, context),
                   ], context),
 
                   SizedBox(height: 30),

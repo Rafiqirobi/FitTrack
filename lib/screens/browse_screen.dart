@@ -14,10 +14,15 @@ class BrowseScreen extends StatefulWidget {
 // IMPORTANT: Add TickerProviderStateMixin to your State class
 class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMixin {
   List<Workout> _workouts = [];
+  List<Workout> _allWorkouts = []; // Store all workouts for search
+  List<Workout> _filteredWorkouts = []; // Store filtered workouts
   bool _loading = true;
   String _selectedCategory = 'All';
+  String _searchQuery = '';
+  bool _isSearching = false;
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+  final TextEditingController _searchController = TextEditingController();
 
   // Animation Controllers
   // Controller for the Category List (horizontal scroll)
@@ -154,6 +159,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
     _categoryListController.dispose();
     _headerTextController.dispose();
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -180,6 +186,17 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
           .map((doc) => Workout.fromMap(doc.data() as Map<String, dynamic>, id: doc.id))
           .toList();
 
+      // Store all workouts for search functionality
+      _allWorkouts = List.from(newWorkouts);
+      
+      // Apply current search filter if active
+      _filteredWorkouts = _searchQuery.isEmpty 
+          ? List.from(newWorkouts)
+          : newWorkouts.where((workout) {
+              return workout.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                     workout.category.toLowerCase().contains(_searchQuery.toLowerCase());
+            }).toList();
+
       // Animate list changes
       // 1. Remove all current items with animation
       if (_workouts.isNotEmpty) {
@@ -197,8 +214,8 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
       await Future.delayed(const Duration(milliseconds: 300)); // Delay for removal animation to finish
 
       // Re-add items one by one to trigger individual item animations
-      for (var i = 0; i < newWorkouts.length; i++) {
-        _workouts.insert(i, newWorkouts[i]);
+      for (var i = 0; i < _filteredWorkouts.length; i++) {
+        _workouts.insert(i, _filteredWorkouts[i]);
         _listKey.currentState?.insertItem(i, duration: const Duration(milliseconds: 350)); // Consistent insert duration
       }
 
@@ -214,6 +231,28 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
         _loading = false;
       });
     }
+  }
+
+  // Search functionality
+  void _performSearch(String query) {
+    setState(() {
+      _searchQuery = query;
+      _filteredWorkouts = query.isEmpty 
+          ? List.from(_allWorkouts)
+          : _allWorkouts.where((workout) {
+              return workout.name.toLowerCase().contains(query.toLowerCase()) ||
+                     workout.category.toLowerCase().contains(query.toLowerCase());
+            }).toList();
+      
+      // Update the displayed workouts
+      _workouts.clear();
+      _workouts.addAll(_filteredWorkouts);
+    });
+  }
+
+  // Pull to refresh functionality
+  Future<void> _refreshWorkouts() async {
+    await _fetchWorkouts(category: _selectedCategory == 'All' ? null : _selectedCategory);
   }
 
   // Widget to build the item when it's being removed
@@ -242,24 +281,44 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: Text(
-          'Browse Workouts',
-          style: TextStyle(
-            color: primaryColor,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: _isSearching 
+            ? TextField(
+                controller: _searchController,
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  hintText: 'Search workouts...',
+                  hintStyle: TextStyle(color: textColor.withOpacity(0.6)),
+                  border: InputBorder.none,
+                ),
+                onChanged: _performSearch,
+                autofocus: true,
+              )
+            : Text(
+                'Browse Workouts',
+                style: TextStyle(
+                  color: primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
-            icon: Icon(Icons.search, color: primaryColor),
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search, 
+              color: primaryColor,
+            ),
             onPressed: () {
-              // Implement search functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Search functionality coming soon!')),
-              );
+              setState(() {
+                if (_isSearching) {
+                  _isSearching = false;
+                  _searchController.clear();
+                  _performSearch(''); // Clear search
+                } else {
+                  _isSearching = true;
+                }
+              });
             },
           ),
           if (widget.onToggleTheme != null)
@@ -273,9 +332,12 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
             ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      body: RefreshIndicator(
+        onRefresh: _refreshWorkouts,
+        color: primaryColor,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Animated Horizontal Category Cards
           FadeTransition(
             opacity: _categoryListFadeAnimation,
@@ -380,7 +442,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
           Expanded(
             child: _loading
                 ? Center(child: CircularProgressIndicator(color: primaryColor))
-                : _workouts.isEmpty
+                : _filteredWorkouts.isEmpty
                   ? Center(
                       child: Text(
                         'No workouts found for this category.',
@@ -389,18 +451,19 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
                     )
                   : AnimatedList(
                       key: _listKey,
-                      initialItemCount: _workouts.length,
+                      initialItemCount: _filteredWorkouts.length,
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       itemBuilder: (context, index, animation) {
-                        final workout = _workouts[index];
+                        final workout = _filteredWorkouts[index];
                         return _buildWorkoutCard(workout, animation, context);
                       },
                     ),
           ),
         ],
       ),
-    );
-  }
+    ), // This closes the RefreshIndicator
+  ); // This closes the Scaffold
+  } // This closes the build method
 
   // Helper function to get category icon (moved outside build for cleanliness)
   IconData _getCategoryIcon(String category) {
