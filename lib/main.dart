@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
-//import 'utils/firebase_seed.dart'; // Optional: Uncomment seedWorkoutData if needed
+//import 'utils/firebase_seed.dart'; // Workout seeding completed
 
 // Screens
 import 'screens/splash_screen.dart';
@@ -16,6 +16,10 @@ import 'screens/nav_bottom_bar.dart'; // Main navigation
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  
+  // Seed workout data (run once to populate new workouts)
+  // await seedWorkoutData();
+  
   runApp(FitTrackApp());
 }
 
@@ -34,7 +38,7 @@ class _FitTrackAppState extends State<FitTrackApp> {
   }
 
   Future<void> _initializeApp() async {
-    // Optional: Seed Firebase with initial workout data
+    // Workout data seeding completed - commenting out to prevent re-running
     //await seedWorkoutData();
     await _loadTheme();
   }

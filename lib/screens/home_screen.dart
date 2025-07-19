@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 // Ensure your main.dart or app setup includes a MaterialApp
 // with defined themes (light and dark) for primaryColor, scaffoldBackgroundColor,
@@ -77,9 +78,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late List<Animation<double>> _categoryFadeAnimations;
   late List<Animation<Offset>> _categorySlideAnimations;
 
-  late AnimationController _motivationController;
-  late Animation<Offset> _motivationSlideAnimation;
-  late Animation<double> _motivationFadeAnimation;
+  late AnimationController _inspirationController;
+  late Animation<Offset> _inspirationSlideAnimation;
+  late Animation<double> _inspirationFadeAnimation;
+
+  // Daily inspiration quotes
+  final List<String> _inspirationalQuotes = [
+    "Your body can do it. It's your mind you need to convince!",
+    "Don't stop when you're tired. Stop when you're done!",
+    "The pain you feel today will be the strength you feel tomorrow!",
+    "Success isn't given. It's earned in the gym!",
+    "Champions train, losers complain!",
+    "Push yourself because no one else is going to do it for you!",
+    "Great things never come from comfort zones!",
+    "Make yourself proud!",
+    "The only bad workout is the one that didn't happen!",
+    "Strong is the new beautiful!",
+    "Fitness is not about being better than someone else. It's about being better than you used to be!",
+    "You are stronger than your excuses!",
+    "Every workout gets you one step closer to your goal!",
+    "Train like a beast, look like a beauty!",
+    "The hardest part is showing up!",
+    "Your future self will thank you!",
+    "Believe in yourself and you will be unstoppable!",
+    "Progress, not perfection!",
+    "Make it happen!",
+    "Today's pain is tomorrow's power!"
+  ];
+
+  String _dailyInspiration = '';
+
+  void _generateDailyInspiration() {
+    final random = Random();
+    setState(() {
+      _dailyInspiration = _inspirationalQuotes[random.nextInt(_inspirationalQuotes.length)];
+    });
+  }
 
   @override
   void initState() {
@@ -154,20 +188,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             )))
         .toList();
 
-    // Motivation Card Animation
-    _motivationController = AnimationController(
+    // Inspiration Card Animation
+    _inspirationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200), // Longest for a late, smooth appearance
     );
-    _motivationSlideAnimation = Tween<Offset>(
+    _inspirationSlideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.4),
       end: Offset.zero,
     ).animate(CurvedAnimation(
-      parent: _motivationController,
+      parent: _inspirationController,
       curve: Curves.easeOutCubic,
     ));
-    _motivationFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _motivationController, curve: Curves.easeIn));
+    _inspirationFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: _inspirationController, curve: Curves.easeIn));
+
+    // Generate daily inspiration
+    _generateDailyInspiration();
 
     // Start all animations shortly after the initial build completes
     // This gives Flutter a moment to lay out the widgets before animating them.
@@ -178,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       for (var controller in _categoryControllers) {
         controller.forward();
       }
-      _motivationController.forward();
+      _inspirationController.forward();
     });
   }
 
@@ -219,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     for (var controller in _categoryControllers) {
       controller.dispose(); // Dispose each controller in the list
     }
-    _motivationController.dispose();
+    _inspirationController.dispose();
     super.dispose(); // Always call super.dispose() last
   }
 
@@ -270,12 +307,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 opacity: _headerFadeAnimation,
                 child: SlideTransition(
                   position: _headerSlideAnimation,
-                  child: Text(
-                    'Welcome back, Fitness Enthusiast!', // More engaging welcome message
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
-                      fontSize: 32, // Larger and more prominent
-                      fontWeight: FontWeight.w800, // Extra bold
+                  child: GestureDetector(
+                    onTap: _generateDailyInspiration, // Allow users to tap for a new inspiration
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      child: Text(
+                        _dailyInspiration.isEmpty ? 'Welcome back, Fitness Enthusiast!' : _dailyInspiration, // Dynamic daily inspiration
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
+                          fontSize: 28, // Slightly smaller to accommodate longer inspirational quotes
+                          fontWeight: FontWeight.w800, // Extra bold
+                        ),
+                        textAlign: TextAlign.center, // Center align for better readability
+                      ),
                     ),
                   ),
                 ),
@@ -285,11 +329,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: SlideTransition(
                   position: _headerSlideAnimation,
                   child: Text(
-                    'Ready to crush your fitness goals today?', // More direct question
+                    'Let\'s make today count! (Tap above for new inspiration)', // More generic subtitle with hint about tapping for inspiration
                     style: TextStyle(
                       color: Colors.grey[isDarkMode ? 400 : 700], // Adjust color for dark mode
-                      fontSize: 17,
+                      fontSize: 15, // Slightly smaller to accommodate the hint
                     ),
+                    textAlign: TextAlign.center, // Center align to match the main title
                   ),
                 ),
               ),
@@ -454,11 +499,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
               SizedBox(height: 35),
 
-              // Today's Motivation Card (with Fade and Slide Animations)
+              // Today's Inspiration Card (with Fade and Slide Animations)
               FadeTransition(
-                opacity: _motivationFadeAnimation,
+                opacity: _inspirationFadeAnimation,
                 child: SlideTransition(
-                  position: _motivationSlideAnimation,
+                  position: _inspirationSlideAnimation,
                   child: Container(
                     width: double.infinity,
                     padding: EdgeInsets.all(24), // More padding

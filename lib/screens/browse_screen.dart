@@ -47,13 +47,29 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
       'image': 'lib/assets/abs.jpeg',
       'icon': Icons.grid_on,
     },
-    'Leg': {
+    'leg': {
       'image': 'lib/assets/leg.jpeg',
       'icon': Icons.directions_run,
     },
-    'Back': {
+    'back': {
       'image': 'lib/assets/back.jpeg',
       'icon': Icons.airline_seat_individual_suite,
+    },
+    'strength': {
+      'image': 'lib/assets/all.jpeg',
+      'icon': Icons.sports_gymnastics,
+    },
+    'yoga': {
+      'image': 'lib/assets/all.jpeg',
+      'icon': Icons.self_improvement,
+    },
+    'cardio': {
+      'image': 'lib/assets/leg.jpeg',
+      'icon': Icons.favorite,
+    },
+    'hiit': {
+      'image': 'lib/assets/all.jpeg',
+      'icon': Icons.local_fire_department,
     },
   };
 
@@ -366,6 +382,14 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
         return Icons.directions_run;
       case 'back':
         return Icons.airline_seat_recline_normal;
+      case 'strength':
+        return Icons.sports_gymnastics;
+      case 'yoga':
+        return Icons.self_improvement;
+      case 'cardio':
+        return Icons.favorite;
+      case 'hiit':
+        return Icons.local_fire_department;
       default:
         return Icons.sports_gymnastics; // Generic icon for 'All' or unknown
     }
