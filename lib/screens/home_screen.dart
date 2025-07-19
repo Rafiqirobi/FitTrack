@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 import 'dart:async';
+import 'dart:math';
 import 'package:FitTrack/services/firestore_service.dart';
 import 'package:FitTrack/models/workout_model.dart';
 
@@ -71,30 +71,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _loadingFavoriteWorkouts = true;
   StreamSubscription? _favoritesSubscription;
 
-  // --- Animation Controllers and Animations ---
-  // Declared as `late` because they are initialized in `initState`.
-
-  late AnimationController _headerController;
-  late Animation<Offset> _headerSlideAnimation;
-  late Animation<double> _headerFadeAnimation;
-
-  late AnimationController _statsController;
-  late Animation<Offset> _statsSlideAnimation;
-  late Animation<double> _statsFadeAnimation;
-
-  late AnimationController _quickStartController;
-  late Animation<double> _quickStartScaleAnimation;
-
-  late List<AnimationController> _categoryControllers;
-  late List<Animation<double>> _categoryFadeAnimations;
-  late List<Animation<Offset>> _categorySlideAnimations;
-
-  late AnimationController _inspirationController;
-  late Animation<Offset> _inspirationSlideAnimation;
-  late Animation<double> _inspirationFadeAnimation;
-
-  // Daily inspiration quotes
-  final List<String> _inspirationalQuotes = [
+  // --- Motivational Quotes ---
+  final List<String> _motivationalQuotes = [
     "Your body can do it. It's your mind you need to convince!",
     "Don't stop when you're tired. Stop when you're done!",
     "The pain you feel today will be the strength you feel tomorrow!",
@@ -114,17 +92,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     "Believe in yourself and you will be unstoppable!",
     "Progress, not perfection!",
     "Make it happen!",
-    "Today's pain is tomorrow's power!"
+    "Today's pain is tomorrow's power!",
+    "The only impossible journey is the one you never begin!",
+    "Sweat is just fat crying!",
+    "Your only limit is your mind!",
+    "Wake up with determination, go to bed with satisfaction!",
+    "A champion is someone who gets up when they can't!"
   ];
 
-  String _dailyInspiration = '';
+  String _currentQuote = '';
 
-  void _generateDailyInspiration() {
-    final random = Random();
-    setState(() {
-      _dailyInspiration = _inspirationalQuotes[random.nextInt(_inspirationalQuotes.length)];
-    });
-  }
+  // --- Animation Controllers and Animations ---
+  // Declared as `late` because they are initialized in `initState`.
+
+  late AnimationController _headerController;
+  late Animation<Offset> _headerSlideAnimation;
+  late Animation<double> _headerFadeAnimation;
+
+  late AnimationController _statsController;
+  late Animation<Offset> _statsSlideAnimation;
+  late Animation<double> _statsFadeAnimation;
+
+  late AnimationController _quickStartController;
+  late Animation<double> _quickStartScaleAnimation;
+
+  late List<AnimationController> _categoryControllers;
+  late List<Animation<double>> _categoryFadeAnimations;
+  late List<Animation<Offset>> _categorySlideAnimations;
+
+
 
   void _loadFavoriteWorkouts() {
     // Cancel existing subscription if any
@@ -160,6 +156,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _loadFavoriteWorkouts();
     // Add a small delay to show the refresh indicator
     await Future.delayed(Duration(milliseconds: 500));
+  }
+
+  void _generateRandomQuote() {
+    final random = Random();
+    setState(() {
+      _currentQuote = _motivationalQuotes[random.nextInt(_motivationalQuotes.length)];
+    });
   }
 
   void _navigateToWorkout(String workoutId, String workoutName) {
@@ -283,26 +286,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             )))
         .toList();
 
-    // Inspiration Card Animation
-    _inspirationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200), // Longest for a late, smooth appearance
-    );
-    _inspirationSlideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _inspirationController,
-      curve: Curves.easeOutCubic,
-    ));
-    _inspirationFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _inspirationController, curve: Curves.easeIn));
-
-    // Generate daily inspiration
-    _generateDailyInspiration();
-
     // Load favorite workouts
     _loadFavoriteWorkouts();
+
+    // Generate a random motivational quote
+    _generateRandomQuote();
 
     // Start all animations shortly after the initial build completes
     // This gives Flutter a moment to lay out the widgets before animating them.
@@ -313,7 +301,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       for (var controller in _categoryControllers) {
         controller.forward();
       }
-      _inspirationController.forward();
     });
   }
 
@@ -354,7 +341,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     for (var controller in _categoryControllers) {
       controller.dispose(); // Dispose each controller in the list
     }
-    _inspirationController.dispose();
     _favoritesSubscription?.cancel(); // Cancel favorites subscription
     super.dispose(); // Always call super.dispose() last
   }
@@ -411,15 +397,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: SlideTransition(
                   position: _headerSlideAnimation,
                   child: GestureDetector(
-                    onTap: _generateDailyInspiration, // Allow users to tap for a new inspiration
+                    onTap: _generateRandomQuote, // Tap to get a new quote
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       child: Text(
-                        _dailyInspiration.isEmpty ? 'Welcome back, Fitness Enthusiast!' : _dailyInspiration, // Dynamic daily inspiration
+                        _currentQuote.isNotEmpty ? _currentQuote : 'Welcome back, Fitness Enthusiast!',
                         style: TextStyle(
                           color: Theme.of(context).textTheme.headlineLarge?.color ?? (isDarkMode ? Colors.white : Colors.black),
-                          fontSize: 28, // Slightly smaller to accommodate longer inspirational quotes
-                          fontWeight: FontWeight.w800, // Extra bold
+                          fontSize: 26, // Slightly smaller to accommodate longer motivational quotes
+                          fontWeight: FontWeight.w700, // Bold but readable
                         ),
                         textAlign: TextAlign.center, // Center align for better readability
                       ),
@@ -756,58 +742,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ],
               ),
 
-              SizedBox(height: 35),
-
-              // Today's Inspiration Card (with Fade and Slide Animations)
-              FadeTransition(
-                opacity: _inspirationFadeAnimation,
-                child: SlideTransition(
-                  position: _inspirationSlideAnimation,
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(24), // More padding
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor, // Uses theme's card color
-                      borderRadius: BorderRadius.circular(20), // More rounded
-                      border: Border.all(color: Colors.grey.withOpacity(0.15)), // Subtle border
-                      // Shadow removed as per request
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.lightbulb_outline, // Lightbulb icon
-                              color: Theme.of(context).primaryColor, // Icon color matches primary
-                              size: 28, // Slightly larger
-                            ),
-                            SizedBox(width: 14), // More spacing
-                            Text(
-                              'Daily Inspiration', // More engaging title
-                              style: TextStyle(
-                                color: Theme.of(context).textTheme.headlineMedium?.color ?? (isDarkMode ? Colors.white : Colors.black87),
-                                fontSize: 20, // Slightly larger
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 16), // More spacing
-                        Text(
-                          '"The only bad workout is the one that didn\'t happen. Consistency is key!"', // Enhanced quote
-                          style: TextStyle(
-                            color: Colors.grey[isDarkMode ? 400 : 700], // Adjust color for dark mode
-                            fontSize: 17, // Slightly larger
-                            fontStyle: FontStyle.italic,
-                            height: 1.4, // Improve line spacing for readability
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
               SizedBox(height: 20), // Padding at the very bottom
             ],
             ),
