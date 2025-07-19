@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:FitTrack/models/completed_workout_model.dart'; // Adjust import path as needed
+import 'package:FitTrack/services/goal_service.dart';
 
 // Rank system based on total workouts completed
 class Rank {
@@ -55,6 +56,10 @@ class _StatsScreenState extends State<StatsScreen> {
   // Rank system variables
   Rank? _currentRank;
   Rank? _nextRank;
+  
+  // Goals variables
+  Map<String, dynamic> _userGoals = {};
+  StreamSubscription? _goalsSubscription;
   
   // Real-time listener for auto-updates
   StreamSubscription<QuerySnapshot>? _workoutDataSubscription;
@@ -148,6 +153,9 @@ class _StatsScreenState extends State<StatsScreen> {
       print('🔄 About to call _setupRealtimeListener()'); // Debug print
       await _setupRealtimeListener();
       print('🔄 _setupRealtimeListener() completed'); // Debug print
+      
+      // Initialize goals
+      _initializeUserGoals();
     } else {
       print('❌ Firebase Auth: User not logged in. Cannot fetch stats.'); // Debug print
       if (mounted) {
@@ -225,6 +233,29 @@ class _StatsScreenState extends State<StatsScreen> {
         );
       }
     }
+  }
+
+  // Initialize user goals
+  void _initializeUserGoals() {
+    print('🎯 Stats: Initializing user goals');
+    
+    // Cancel existing subscription if any
+    _goalsSubscription?.cancel();
+
+    // Listen to real-time goal changes
+    _goalsSubscription = GoalService.getUserGoalsStream().listen(
+      (goals) {
+        if (mounted) {
+          setState(() {
+            _userGoals = goals;
+          });
+          print('🎯 Stats: Goals updated - $goals');
+        }
+      },
+      onError: (error) {
+        print('❌ Stats: Error listening to goals: $error');
+      },
+    );
   }
 
   // Process workout data from real-time listener
@@ -334,7 +365,40 @@ class _StatsScreenState extends State<StatsScreen> {
   void dispose() {
     // Cancel the real-time listener to prevent memory leaks
     _workoutDataSubscription?.cancel();
+    _goalsSubscription?.cancel();
     super.dispose();
+  }
+
+  // Helper method to calculate today's minutes
+  int _getTodayMinutes() {
+    DateTime today = DateTime.now();
+    DateTime startOfToday = DateTime(today.year, today.month, today.day);
+    DateTime endOfToday = startOfToday.add(const Duration(days: 1));
+
+    int todayMinutes = 0;
+    for (var workout in _allCompletedWorkouts) {
+      bool isToday = workout.timestamp.isAfter(startOfToday) && workout.timestamp.isBefore(endOfToday);
+      if (isToday) {
+        todayMinutes += workout.actualDurationMinutes;
+      }
+    }
+    return todayMinutes;
+  }
+
+  // Helper method to calculate monthly calories
+  int _getMonthlyCalories() {
+    DateTime now = DateTime.now();
+    DateTime startOfMonth = DateTime(now.year, now.month, 1);
+    DateTime endOfMonth = DateTime(now.year, now.month + 1, 1);
+
+    int monthlyCalories = 0;
+    for (var workout in _allCompletedWorkouts) {
+      bool isThisMonth = workout.timestamp.isAfter(startOfMonth) && workout.timestamp.isBefore(endOfMonth);
+      if (isThisMonth) {
+        monthlyCalories += workout.actualCaloriesBurned;
+      }
+    }
+    return monthlyCalories;
   }
 
   @override
@@ -700,22 +764,35 @@ class _StatsScreenState extends State<StatsScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  // Daily Goal
+                  _buildGoalCard(
+                    context,
+                    'Daily Goal',
+                    'Complete ${_userGoals['dailyMinutes'] ?? 30} minutes',
+                    _getTodayMinutes(),
+                    _userGoals['dailyMinutes'] ?? 30,
+                    Icons.timer,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Weekly Goal
                   _buildGoalCard(
                     context,
                     'Weekly Goal',
-                    'Complete 5 workouts',
-                    _weeklyWorkouts.reduce((a, b) => a + b), // Current progress for current week
-                    5,
+                    'Complete ${_userGoals['weeklyWorkouts'] ?? 5} workouts',
+                    _weeklyWorkouts.reduce((a, b) => a + b),
+                    _userGoals['weeklyWorkouts'] ?? 5,
                     Icons.flag_outlined,
                   ),
                   const SizedBox(height: 12),
 
+                  // Monthly Goal
                   _buildGoalCard(
                     context,
                     'Monthly Goal',
-                    'Burn 5000 calories',
-                    _caloriesBurned, // Using total calories as current progress for example
-                    5000,
+                    'Burn ${_userGoals['monthlyCalories'] ?? 5000} calories',
+                    _getMonthlyCalories(),
+                    _userGoals['monthlyCalories'] ?? 5000,
                     Icons.local_fire_department,
                   ),
                 ],

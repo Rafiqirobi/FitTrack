@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:FitTrack/services/firestore_service.dart';
 import 'package:FitTrack/services/quote_service.dart';
+import 'package:FitTrack/services/goal_service.dart';
 import 'package:FitTrack/models/workout_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -80,6 +81,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _weeklyWorkouts = 0;
   String? _userId;
   StreamSubscription<QuerySnapshot>? _workoutStatsSubscription;
+
+  // Goals state
+  Map<String, dynamic> _userGoals = {};
+  StreamSubscription? _goalsSubscription;
 
   // --- Motivational Quotes from ZenQuotes API ---
   Quote? _currentQuote;
@@ -259,6 +264,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  // Initialize user goals
+  void _initializeUserGoals() {
+    print('🎯 Home: Initializing user goals');
+    
+    // Cancel existing subscription if any
+    _goalsSubscription?.cancel();
+
+    // Listen to real-time goal changes
+    _goalsSubscription = GoalService.getUserGoalsStream().listen(
+      (goals) {
+        if (mounted) {
+          setState(() {
+            _userGoals = goals;
+          });
+          print('🎯 Home: Goals updated - $goals');
+        }
+      },
+      onError: (error) {
+        print('❌ Home: Error listening to goals: $error');
+      },
+    );
+  }
+
   // Refresh method for pull-to-refresh
   Future<void> _refreshHomeData() async {
     print('🔄 Home: Pull-to-refresh triggered');
@@ -298,6 +326,187 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       context,
       '/workoutDetail',
       arguments: workoutId,
+    );
+  }
+
+  // Show goal settings dialog
+  void _showGoalSettingsDialog(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    // Controllers for text fields
+    final dailyMinutesController = TextEditingController(
+      text: (_userGoals['dailyMinutes'] ?? 30).toString(),
+    );
+    final weeklyWorkoutsController = TextEditingController(
+      text: (_userGoals['weeklyWorkouts'] ?? 5).toString(),
+    );
+    final monthlyCaloriesController = TextEditingController(
+      text: (_userGoals['monthlyCalories'] ?? 5000).toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.flag_outlined, color: Theme.of(context).primaryColor),
+            SizedBox(width: 10),
+            Text(
+              'Set Your Goals',
+              style: TextStyle(
+                color: Theme.of(context).textTheme.headlineMedium?.color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Daily Minutes Goal
+              _buildGoalInputField(
+                controller: dailyMinutesController,
+                label: 'Daily Minutes Goal',
+                unit: 'minutes',
+                isDarkMode: isDarkMode,
+                icon: Icons.timer,
+              ),
+              SizedBox(height: 16),
+              
+              // Weekly Workouts Goal
+              _buildGoalInputField(
+                controller: weeklyWorkoutsController,
+                label: 'Weekly Workouts Goal',
+                unit: 'workouts',
+                isDarkMode: isDarkMode,
+                icon: Icons.calendar_today,
+              ),
+              SizedBox(height: 16),
+              
+              // Monthly Calories Goal
+              _buildGoalInputField(
+                controller: monthlyCaloriesController,
+                label: 'Monthly Calories Goal',
+                unit: 'calories',
+                isDarkMode: isDarkMode,
+                icon: Icons.local_fire_department,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                // Validate and save goals
+                final dailyMinutes = int.tryParse(dailyMinutesController.text) ?? 30;
+                final weeklyWorkouts = int.tryParse(weeklyWorkoutsController.text) ?? 5;
+                final monthlyCalories = int.tryParse(monthlyCaloriesController.text) ?? 5000;
+
+                // Validate values
+                if (!GoalService.isValidGoal('dailyMinutes', dailyMinutes)) {
+                  _showErrorSnackBar('Daily minutes must be between 5 and 180');
+                  return;
+                }
+                if (!GoalService.isValidGoal('weeklyWorkouts', weeklyWorkouts)) {
+                  _showErrorSnackBar('Weekly workouts must be between 1 and 21');
+                  return;
+                }
+                if (!GoalService.isValidGoal('monthlyCalories', monthlyCalories)) {
+                  _showErrorSnackBar('Monthly calories must be between 100 and 50,000');
+                  return;
+                }
+
+                // Save goals
+                await GoalService.setUserGoals({
+                  'dailyMinutes': dailyMinutes,
+                  'weeklyWorkouts': weeklyWorkouts,
+                  'monthlyCalories': monthlyCalories,
+                  'lastUpdated': DateTime.now().toIso8601String(),
+                });
+
+                Navigator.of(context).pop();
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('🎯 Goals updated successfully!'),
+                    backgroundColor: Colors.green,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                );
+              } catch (e) {
+                _showErrorSnackBar('Failed to save goals: $e');
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('Save Goals'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to build goal input fields
+  Widget _buildGoalInputField({
+    required TextEditingController controller,
+    required String label,
+    required String unit,
+    required bool isDarkMode,
+    required IconData icon,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      style: TextStyle(
+        color: Theme.of(context).textTheme.bodyLarge?.color,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        suffixText: unit,
+        prefixIcon: Icon(icon, color: Theme.of(context).primaryColor),
+        labelStyle: TextStyle(
+          color: Colors.grey[isDarkMode ? 400 : 600],
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey[isDarkMode ? 600 : 300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey[isDarkMode ? 600 : 300]!),
+        ),
+      ),
+    );
+  }
+
+  // Helper method to show error messages
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('❌ $message'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 
@@ -408,6 +617,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Initialize workout statistics
     _initializeWorkoutStats();
 
+    // Initialize user goals
+    _initializeUserGoals();
+
     // Start all animations shortly after the initial build completes
     // This gives Flutter a moment to lay out the widgets before animating them.
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -459,6 +671,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
     _favoritesSubscription?.cancel(); // Cancel favorites subscription
     _workoutStatsSubscription?.cancel(); // Cancel workout stats subscription
+    _goalsSubscription?.cancel(); // Cancel goals subscription
     super.dispose(); // Always call super.dispose() last
   }
 
@@ -591,13 +804,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: Row(
                     children: [
                       Expanded(
-                        child: _buildStatCard(
-                          'Today\'s Goal',
-                          '$_todayMinutes min',
-                          Icons.flag_outlined,
-                          Theme.of(context).primaryColor.withOpacity(0.15), // Slightly more opaque background
-                          Theme.of(context).primaryColor, // Icon color matches primary
-                          isDarkMode,
+                        child: GestureDetector(
+                          onTap: () => _showGoalSettingsDialog(context),
+                          child: _buildGoalStatCard(
+                            'Custom Goal',
+                            _userGoals.isNotEmpty ? 
+                              '$_todayMinutes / ${_userGoals['dailyMinutes'] ?? 30} min' : 
+                              '$_todayMinutes / 30 min',
+                            Icons.flag_outlined,
+                            Theme.of(context).primaryColor.withOpacity(0.15),
+                            Theme.of(context).primaryColor,
+                            isDarkMode,
+                            _todayMinutes,
+                            _userGoals.isNotEmpty ? _userGoals['dailyMinutes'] ?? 30 : 30,
+                          ),
                         ),
                       ),
                       SizedBox(width: 18), // Slightly increased spacing
@@ -951,6 +1171,72 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             style: TextStyle(
               color: Colors.grey[isDarkMode ? 400 : 700],
               fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Goal stat card with progress indicator
+  Widget _buildGoalStatCard(String title, String value, IconData icon,
+      Color backgroundColor, Color iconColor, bool isDarkMode, int current, int goal) {
+    double progress = goal > 0 ? (current / goal).clamp(0.0, 1.0) : 0.0;
+    
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 28),
+              Spacer(),
+              Icon(Icons.edit, color: Colors.grey[isDarkMode ? 400 : 600], size: 18),
+            ],
+          ),
+          SizedBox(height: 10),
+          Text(
+            value,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.headlineMedium?.color ??
+                  (isDarkMode ? Colors.white : Colors.black),
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.grey[isDarkMode ? 400 : 700],
+              fontSize: 15,
+            ),
+          ),
+          SizedBox(height: 10),
+          // Progress bar
+          Container(
+            height: 8,
+            decoration: BoxDecoration(
+              color: Colors.grey[isDarkMode ? 600 : 300],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: (MediaQuery.of(context).size.width - 80) * 0.4 * progress, // Approximate width calculation
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: current >= goal ? Colors.green : iconColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
