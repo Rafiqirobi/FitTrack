@@ -43,11 +43,11 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
       'image': 'lib/assets/abs.jpeg',
       'icon': Icons.grid_on,
     },
-    'legs': {
+    'Leg': {
       'image': 'lib/assets/leg.jpeg',
       'icon': Icons.directions_run,
     },
-    'back': {
+    'Back': {
       'image': 'lib/assets/back.jpeg',
       'icon': Icons.airline_seat_individual_suite,
     },
@@ -349,7 +349,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
         return Icons.accessibility;
       case 'abs':
         return Icons.grid_on;
-      case 'legs':
+      case 'leg':
         return Icons.directions_run;
       case 'back':
         return Icons.airline_seat_recline_normal;

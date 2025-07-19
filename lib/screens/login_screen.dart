@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
           await SessionManager.saveUserSession(isLoggedIn: true, uid: user.uid);
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.pushReplacementNamed(context, '/home');
+            Navigator.pushReplacementNamed(context, '/navBottomBar');
           });
 
           Future.microtask(() {
