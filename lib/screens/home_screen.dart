@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'dart:async';
+import 'package:FitTrack/services/firestore_service.dart';
+import 'package:FitTrack/models/workout_model.dart';
 
 // Ensure your main.dart or app setup includes a MaterialApp
 // with defined themes (light and dark) for primaryColor, scaffoldBackgroundColor,
@@ -59,6 +62,14 @@ class HomeScreen extends StatefulWidget {
 // This provides the `vsync` needed for AnimationControllers.
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _messageShown = false;
+  
+  // Services
+  final FirestoreService _firestoreService = FirestoreService();
+  
+  // Favorite workouts state
+  List<Workout> _favoriteWorkouts = [];
+  bool _loadingFavoriteWorkouts = true;
+  StreamSubscription? _favoritesSubscription;
 
   // --- Animation Controllers and Animations ---
   // Declared as `late` because they are initialized in `initState`.
@@ -115,6 +126,90 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
   }
 
+  void _loadFavoriteWorkouts() {
+    // Cancel existing subscription if any
+    _favoritesSubscription?.cancel();
+    
+    setState(() {
+      _loadingFavoriteWorkouts = true;
+    });
+
+    _favoritesSubscription = _firestoreService.getFavoriteWorkoutsForCurrentUser().listen(
+      (workouts) {
+        if (mounted) {
+          setState(() {
+            _favoriteWorkouts = workouts.take(3).toList(); // Take only the 3 most recent favorites
+            _loadingFavoriteWorkouts = false;
+          });
+          print('Loaded ${workouts.length} favorite workouts');
+        }
+      },
+      onError: (error) {
+        print('Error loading favorite workouts: $error');
+        if (mounted) {
+          setState(() {
+            _loadingFavoriteWorkouts = false;
+          });
+        }
+      },
+    );
+  }
+
+  Future<void> _refreshFavorites() async {
+    print('🔄 Refreshing favorites...');
+    _loadFavoriteWorkouts();
+    // Add a small delay to show the refresh indicator
+    await Future.delayed(Duration(milliseconds: 500));
+  }
+
+  void _navigateToWorkout(String workoutId, String workoutName) {
+    // Show feedback to user
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🚀 Starting $workoutName...'),
+        duration: Duration(milliseconds: 1500),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(16.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        backgroundColor: Theme.of(context).primaryColor,
+      ),
+    );
+    
+    // Navigate to workout detail
+    Navigator.pushNamed(
+      context,
+      '/workoutDetail',
+      arguments: workoutId,
+    );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'strength':
+        return Icons.fitness_center;
+      case 'cardio':
+        return Icons.favorite;
+      case 'yoga':
+        return Icons.self_improvement;
+      case 'hiit':
+        return Icons.local_fire_department;
+      case 'arms':
+        return Icons.sports_handball;
+      case 'chest':
+        return Icons.accessibility_new;
+      case 'abs':
+        return Icons.grid_on;
+      case 'leg':
+        return Icons.directions_run;
+      case 'back':
+        return Icons.accessibility;
+      default:
+        return Icons.fitness_center;
+    }
+  }
+
   @override
   void initState() {
     // !!! IMPORTANT: Always call super.initState() first !!!
@@ -165,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // Category Cards Animations (staggered effect)
     _categoryControllers = List.generate(
-      8, // Number of category cards (increased for more categories)
+      4, // Number of category cards (reduced to 4)
       (index) => AnimationController(
         vsync: this,
         // Staggered duration: each card animates slightly after the previous one
@@ -205,6 +300,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // Generate daily inspiration
     _generateDailyInspiration();
+
+    // Load favorite workouts
+    _loadFavoriteWorkouts();
 
     // Start all animations shortly after the initial build completes
     // This gives Flutter a moment to lay out the widgets before animating them.
@@ -257,6 +355,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       controller.dispose(); // Dispose each controller in the list
     }
     _inspirationController.dispose();
+    _favoritesSubscription?.cancel(); // Cancel favorites subscription
     super.dispose(); // Always call super.dispose() last
   }
 
@@ -297,11 +396,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ],
       ),
       body: SafeArea( // Ensures content doesn't go under notches/status bar
-        child: SingleChildScrollView( // Allows content to scroll if it overflows
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0), // Adjusted padding
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, // Align children to the start (left)
-            children: [
+        child: RefreshIndicator(
+          onRefresh: _refreshFavorites,
+          color: Theme.of(context).primaryColor,
+          child: SingleChildScrollView( // Allows content to scroll if it overflows
+            physics: AlwaysScrollableScrollPhysics(), // Enables pull-to-refresh even when content doesn't fill screen
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0), // Adjusted padding
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, // Align children to the start (left)
+              children: [
               // Welcome header (with Fade and Slide Animations)
               FadeTransition(
                 opacity: _headerFadeAnimation,
@@ -374,117 +477,204 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
               SizedBox(height: 35), // Increased spacing
 
-              // Quick Start Card - Section Title
-              Text(
-                'Quick Start',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.headlineMedium?.color ?? (isDarkMode ? Colors.white : Colors.black87),
-                  fontSize: 22, // Slightly larger
-                  fontWeight: FontWeight.w700, // Bolder
-                ),
+              // Favourite Workouts - Section Title with Refresh Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Favourite Workouts',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.headlineMedium?.color ?? (isDarkMode ? Colors.white : Colors.black87),
+                      fontSize: 22, // Slightly larger
+                      fontWeight: FontWeight.w700, // Bolder
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _refreshFavorites,
+                    icon: Icon(
+                      Icons.refresh,
+                      color: Theme.of(context).primaryColor,
+                      size: 24,
+                    ),
+                    tooltip: 'Refresh favorites',
+                  ),
+                ],
               ),
               SizedBox(height: 18), // Slightly increased spacing
 
-              // Quick Start Card (with Scale Animation for bouncy effect)
+              // Favourite Workouts List
               ScaleTransition(
                 scale: _quickStartScaleAnimation,
-                child: Container(
-                  width: double.infinity, // Takes full width
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient( // Vibrant gradient
-                      colors: [
-                        Theme.of(context).primaryColor, // Use primary color directly for stronger effect
-                        Theme.of(context).primaryColor.withOpacity(0.7),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(25), // More rounded corners
-                    // Shadow removed as per request for a flatter look
-                  ),
-                  child: Material( // Ensures InkWell ripple effect works correctly
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(25),
-                      onTap: () async {
-                        // Show immediate feedback
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('🚀 Starting your Quick HIIT workout...'),
-                            duration: Duration(milliseconds: 1500),
-                            behavior: SnackBarBehavior.floating,
-                            margin: EdgeInsets.all(16.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            backgroundColor: Theme.of(context).primaryColor,
-                          ),
-                        );
-                        
-                        // Navigate to browse screen with HIIT category pre-selected, then to a specific workout
-                        try {
-                          // First get a HIIT workout from the database for Quick Start
-                          await Navigator.pushNamed(
-                            context,
-                            '/browse',
-                            arguments: {
-                              'initialCategory': 'hiit',
-                              'autoSelectFirst': true, // Flag to auto-select the first HIIT workout
-                            },
-                          );
-                        } catch (e) {
-                          print('Error navigating to Quick Start: $e');
-                          // Fallback: Navigate to browse screen with HIIT category
-                          Navigator.pushNamed(
-                            context,
-                            '/browse',
-                            arguments: {'initialCategory': 'hiit'},
-                          );
-                        }
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(28.0), // More padding
+                child: _loadingFavoriteWorkouts
+                    ? Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(40),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey.withOpacity(0.15)),
+                        ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Icon(
-                                  Icons.flash_on, // Flash icon for quickness
-                                  color: isDarkMode ? Colors.black : Colors.white, // Invert color for contrast on gradient
-                                  size: 36, // Larger icon
-                                ),
-                                Icon(
-                                  Icons.play_circle_fill, // Clear play icon
-                                  color: isDarkMode ? Colors.black : Colors.white,
-                                  size: 40, // Larger icon
-                                ),
-                              ],
+                            CircularProgressIndicator(
+                              color: Theme.of(context).primaryColor,
+                              strokeWidth: 2,
                             ),
-                            SizedBox(height: 20), // Increased spacing
+                            SizedBox(height: 16),
                             Text(
-                              'Quick Start Full Body HIIT', // More descriptive title
+                              'Loading your favourite workouts...',
                               style: TextStyle(
-                                color: isDarkMode ? Colors.black : Colors.white,
-                                fontSize: 22, // Larger font
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 10),
-                            Text(
-                              'High Intensity • 20 minutes • All levels', // Clarified description
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.black87 : Colors.white70,
-                                fontSize: 15,
+                                color: Colors.grey[isDarkMode ? 400 : 600],
+                                fontSize: 16,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  ),
-                ),
+                      )
+                    : _favoriteWorkouts.isEmpty
+                        ? Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(28.0),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Theme.of(context).primaryColor,
+                                  Theme.of(context).primaryColor.withOpacity(0.7),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(25),
+                                onTap: () {
+                                  // Navigate to browse screen for first workout
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/browse',
+                                    arguments: {'initialCategory': 'hiit'},
+                                  );
+                                },
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Icon(
+                                          Icons.favorite_border,
+                                          color: isDarkMode ? Colors.black : Colors.white,
+                                          size: 36,
+                                        ),
+                                        Icon(
+                                          Icons.explore,
+                                          color: isDarkMode ? Colors.black : Colors.white,
+                                          size: 40,
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 20),
+                                    Text(
+                                      'No Favourites Yet!',
+                                      style: TextStyle(
+                                        color: isDarkMode ? Colors.black : Colors.white,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Explore workouts and add your favorites!',
+                                      style: TextStyle(
+                                        color: isDarkMode ? Colors.black87 : Colors.white70,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        : Column(
+                            children: _favoriteWorkouts.asMap().entries.map((entry) {
+                              int index = entry.key;
+                              Workout workout = entry.value;
+                              return Container(
+                                margin: EdgeInsets.only(bottom: index < _favoriteWorkouts.length - 1 ? 12 : 0),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).cardColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.grey.withOpacity(0.15)),
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () => _navigateToWorkout(workout.id, workout.name),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).primaryColor.withOpacity(0.15),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Icon(
+                                              _getCategoryIcon(workout.category),
+                                              color: Theme.of(context).primaryColor,
+                                              size: 24,
+                                            ),
+                                          ),
+                                          SizedBox(width: 16),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  workout.name,
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).textTheme.headlineMedium?.color ?? (isDarkMode ? Colors.white : Colors.black87),
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 4),
+                                                Text(
+                                                  '${workout.category} • ${workout.duration} min • ${workout.calories} cal',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[isDarkMode ? 400 : 600],
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 4),
+                                                Text(
+                                                  'Favourite workout',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[isDarkMode ? 500 : 500],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Icon(
+                                            Icons.play_circle_outline,
+                                            color: Theme.of(context).primaryColor,
+                                            size: 28,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
               ),
 
               SizedBox(height: 35), // Increased spacing
@@ -563,60 +753,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  // Third row - Muscle-Specific Workouts
-                  FadeTransition(
-                    opacity: _categoryFadeAnimations.length > 4 ? _categoryFadeAnimations[4] : _categoryFadeAnimations[0],
-                    child: SlideTransition(
-                      position: _categorySlideAnimations.length > 4 ? _categorySlideAnimations[4] : _categorySlideAnimations[0],
-                      child: _buildCategoryCard(
-                        'Arms & Biceps',
-                        Icons.sports_handball,
-                        Colors.blueAccent,
-                        'arms',
-                        isDarkMode,
-                      ),
-                    ),
-                  ),
-                  FadeTransition(
-                    opacity: _categoryFadeAnimations.length > 5 ? _categoryFadeAnimations[5] : _categoryFadeAnimations[1],
-                    child: SlideTransition(
-                      position: _categorySlideAnimations.length > 5 ? _categorySlideAnimations[5] : _categorySlideAnimations[1],
-                      child: _buildCategoryCard(
-                        'Chest Power',
-                        Icons.accessibility_new,
-                        Colors.teal,
-                        'chest',
-                        isDarkMode,
-                      ),
-                    ),
-                  ),
-                  // Fourth row
-                  FadeTransition(
-                    opacity: _categoryFadeAnimations.length > 6 ? _categoryFadeAnimations[6] : _categoryFadeAnimations[2],
-                    child: SlideTransition(
-                      position: _categorySlideAnimations.length > 6 ? _categorySlideAnimations[6] : _categorySlideAnimations[2],
-                      child: _buildCategoryCard(
-                        'Core & Abs',
-                        Icons.grid_on,
-                        Colors.amber,
-                        'abs',
-                        isDarkMode,
-                      ),
-                    ),
-                  ),
-                  FadeTransition(
-                    opacity: _categoryFadeAnimations.length > 7 ? _categoryFadeAnimations[7] : _categoryFadeAnimations[3],
-                    child: SlideTransition(
-                      position: _categorySlideAnimations.length > 7 ? _categorySlideAnimations[7] : _categorySlideAnimations[3],
-                      child: _buildCategoryCard(
-                        'Legs & Lower Body',
-                        Icons.directions_run,
-                        Colors.indigo,
-                        'leg',
-                        isDarkMode,
-                      ),
-                    ),
-                  ),
                 ],
               ),
 
@@ -674,6 +810,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
               SizedBox(height: 20), // Padding at the very bottom
             ],
+            ),
           ),
         ),
       ),
@@ -753,31 +890,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             );
           },
           child: Padding(
-            padding: const EdgeInsets.all(20.0), // More padding
+            padding: const EdgeInsets.all(16.0), // Reduced padding
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center, // Center content vertically
               children: [
                 Container(
-                  padding: EdgeInsets.all(14), // Padding inside icon container
+                  padding: EdgeInsets.all(12), // Reduced padding inside icon container
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.15), // Category specific color with opacity
-                    borderRadius: BorderRadius.circular(15), // Rounded icon background
+                    borderRadius: BorderRadius.circular(12), // Rounded icon background
                   ),
                   child: Icon(
                     icon,
                     color: color, // Category specific icon color
-                    size: 32, // Larger icon
+                    size: 28, // Reduced icon size
                   ),
                 ),
-                SizedBox(height: 14), // More spacing
-                Text(
-                  title,
-                  textAlign: TextAlign.center, // Center text for better appearance
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.headlineMedium?.color ??
-                        (isDarkMode ? Colors.white : Colors.black87),
-                    fontSize: 17, // Slightly larger
-                    fontWeight: FontWeight.w700,
+                SizedBox(height: 12), // Reduced spacing
+                Flexible( // Added to prevent overflow
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center, // Center text for better appearance
+                    maxLines: 2, // Allow text to wrap to 2 lines
+                    overflow: TextOverflow.ellipsis, // Handle overflow gracefully
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.headlineMedium?.color ??
+                          (isDarkMode ? Colors.white : Colors.black87),
+                      fontSize: 15, // Reduced font size
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],

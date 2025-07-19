@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:FitTrack/services/firestore_service.dart';
 
 class WorkoutDetailScreen extends StatefulWidget {
   @override
@@ -13,6 +14,63 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   static const Color accentColor = Color(0xFF00FFCC);
 
   bool _isFavorite = false;
+  final FirestoreService _firestoreService = FirestoreService();
+  bool _isLoadingFavoriteStatus = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load favorite status after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final workoutId = ModalRoute.of(context)!.settings.arguments as String;
+      _loadFavoriteStatus(workoutId);
+    });
+  }
+
+  Future<void> _loadFavoriteStatus(String workoutId) async {
+    try {
+      final isFavorite = await _firestoreService.isWorkoutFavorited(workoutId);
+      if (mounted) {
+        setState(() {
+          _isFavorite = isFavorite;
+          _isLoadingFavoriteStatus = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading favorite status: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingFavoriteStatus = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleFavorite(String workoutId) async {
+    try {
+      await _firestoreService.toggleWorkoutFavorite(workoutId);
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isFavorite ? '❤️ Added to favorites!' : '💔 Removed from favorites'),
+          duration: Duration(milliseconds: 1500),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      print('Error toggling favorite: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating favorites. Please try again.'),
+          backgroundColor: Colors.red,
+          duration: Duration(milliseconds: 2000),
+        ),
+      );
+    }
+  }
 
   Future<void> _editStepDialog(String workoutId, int index, Map<String, dynamic> stepData, List steps) async {
     final durationController = TextEditingController(text: stepData['duration']?.toString() ?? '');
@@ -95,8 +153,17 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         titleTextStyle: TextStyle(color: neonGreen, fontSize: 18, fontWeight: FontWeight.w700),
         actions: [
           IconButton(
-            icon: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border, color: neonGreen),
-            onPressed: () => setState(() => _isFavorite = !_isFavorite),
+            icon: _isLoadingFavoriteStatus 
+                ? SizedBox(
+                    width: 24, 
+                    height: 24, 
+                    child: CircularProgressIndicator(
+                      color: neonGreen, 
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Icon(_isFavorite ? Icons.favorite : Icons.favorite_border, color: neonGreen),
+            onPressed: _isLoadingFavoriteStatus ? null : () => _toggleFavorite(workoutId),
           )
         ],
       ),

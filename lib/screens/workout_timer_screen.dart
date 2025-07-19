@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:FitTrack/services/firestore_service.dart';
+import 'package:FitTrack/models/workout_model.dart';
 
 class WorkoutTimerScreen extends StatefulWidget {
   @override
@@ -17,6 +19,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
   bool isResting = false;
   bool isPaused = false;
   bool workoutIsFinishedUI = false; // Controls the UI state (timer vs. finished screen)
+  bool showingExercise = true; // New: true when showing exercise info, false when showing timer
 
   Timer? _timer;
   AnimationController? _progressController; // Still needed for internal logic, but not for circular UI
@@ -27,6 +30,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
   Animation<double>? _finishFadeAnimation;
 
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FirestoreService _firestoreService = FirestoreService();
 
   static const Color neonGreen = Color(0xFFCCFF00);
   static const Color darkBg = Color(0xFF121212);
@@ -48,7 +52,11 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
       return;
     }
     _setupAnimations(); // Setup animation controllers
-    startStep();
+    // Don't auto-start - let user view exercise info first
+    setState(() {
+      showingExercise = true;
+      isResting = false;
+    });
   }
 
   void _setupAnimations() {
@@ -89,7 +97,8 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
   }
 
   Future<void> _playFinishSound() async {
-    await _audioPlayer.play(AssetSource('sounds/finish.mp3'));
+    // Use the same step sound for finish since finish.mp3 doesn't exist
+    await _audioPlayer.play(AssetSource('sounds/step.mp3'));
   }
 
   void startStep({bool rest = false}) {
@@ -97,54 +106,51 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
     _progressController?.dispose(); // Dispose old controller if exists
     _progressController = null;
 
-    final stepData = steps[currentStepIndex] as Map<String, dynamic>;
-    totalStepDuration = rest ? 5 : (stepData['duration'] ?? 30);
-    currentStepTime = totalStepDuration;
-    isResting = rest;
-
-    // Initialize new controller for current step duration (even if not visually used for circular progress)
-    _progressController = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: totalStepDuration),
-    );
-
-    if (!isPaused) {
-      _progressController!.forward(from: 0.0);
-      _textPulseController!.repeat(reverse: true); // Start pulsing
-    } else {
-      _textPulseController!.stop(); // Stop pulsing if paused
-    }
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      if (!isPaused) {
-        if (currentStepTime > 0) {
-          setState(() {
-            currentStepTime--;
-          });
-          // Update progress controller value (even if not visually used for circular progress)
-          if (_progressController != null &&
-              _progressController!.duration != null &&
-              _progressController!.duration!.inSeconds > 0) {
-            _progressController!.value =
-                1.0 - (currentStepTime / _progressController!.duration!.inSeconds);
-          }
-        } else {
-          timer.cancel();
-          await _playStepSound();
-
-          if (isResting) {
-            goToNextStep();
-          } else {
-            if (currentStepIndex < steps.length - 1) {
-              startStep(rest: true);
-            } else {
-              _prepareForFinishUI();
-            }
-          }
-        }
-      }
+    setState(() {
+      isResting = rest;
+      showingExercise = !rest; // Show exercise info for exercise, timer for rest
     });
 
+    if (rest) {
+      // Rest timer setup
+      totalStepDuration = 30; // Default rest time
+      currentStepTime = totalStepDuration;
+
+      // Initialize new controller for rest duration
+      _progressController = AnimationController(
+        vsync: this,
+        duration: Duration(seconds: totalStepDuration),
+      );
+
+      if (!isPaused) {
+        _progressController!.forward(from: 0.0);
+        _textPulseController!.repeat(reverse: true); // Start pulsing
+      } else {
+        _textPulseController!.stop(); // Stop pulsing if paused
+      }
+
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+        if (!isPaused) {
+          if (currentStepTime > 0) {
+            setState(() {
+              currentStepTime--;
+            });
+            // Update progress controller value
+            if (_progressController != null &&
+                _progressController!.duration != null &&
+                _progressController!.duration!.inSeconds > 0) {
+              _progressController!.value =
+                  1.0 - (currentStepTime / _progressController!.duration!.inSeconds);
+            }
+          } else {
+            timer.cancel();
+            await _playStepSound();
+            goToNextStep();
+          }
+        }
+      });
+    }
+    // For exercise steps, just show the info without starting timer
     setState(() {});
   }
 
@@ -157,10 +163,30 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
       setState(() {
         currentStepIndex++;
         isPaused = false;
+        showingExercise = true; // Show next exercise info
+        isResting = false;
       });
-      startStep();
+      // Don't auto-start, let user view exercise info first
     } else {
       _prepareForFinishUI();
+    }
+  }
+
+  void startExerciseTimer() {
+    // Called when user clicks "Start Exercise" or "Next Step"
+    if (!isResting && showingExercise) {
+      // User finished current exercise, start rest timer
+      startStep(rest: true);
+    }
+  }
+
+  void skipRest() {
+    // Skip rest and go to next exercise
+    if (isResting) {
+      _timer?.cancel();
+      _progressController?.stop();
+      _textPulseController?.stop();
+      goToNextStep();
     }
   }
 
@@ -231,6 +257,36 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
 
     await _playFinishSound();
 
+    // Save completed workout to Firestore
+    try {
+      // Create a Workout object from workoutData
+      final workout = Workout(
+        id: workoutData['id'] ?? '',
+        name: workoutData['name'] ?? 'Unknown Workout',
+        description: workoutData['description'] ?? '',
+        duration: workoutData['duration'] ?? 30,
+        calories: workoutData['calories'] ?? 200,
+        category: workoutData['category'] ?? 'general',
+        restTime: workoutData['restTime'] ?? 30,
+        steps: List<Map<String, dynamic>>.from(workoutData['steps'] ?? []),
+      );
+
+      // Calculate actual duration (rough estimate based on steps)
+      final actualDuration = steps.length * 2; // Assume 2 minutes per exercise on average
+      final actualCalories = (workoutData['calories'] ?? 200) as int;
+
+      await _firestoreService.saveWorkoutCompletion(
+        workoutDetails: workout,
+        finalDurationMinutes: actualDuration,
+        finalCaloriesBurned: actualCalories,
+      );
+      
+      print('Workout completion saved successfully!');
+    } catch (e) {
+      print('Error saving workout completion: $e');
+      // Don't block the UI if saving fails
+    }
+
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.pop(context, workoutData);
     });
@@ -261,21 +317,32 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
     }
 
     final step = steps[currentStepIndex < steps.length ? currentStepIndex : steps.length - 1];
-    final stepTitle = isResting ? "Rest" : step['name'] ?? 'Exercise';
+    final stepTitle = isResting 
+        ? "Rest Time" 
+        : (step['name'] ?? step['text'] ?? 'Exercise ${currentStepIndex + 1}');
     final stepDescription = isResting
         ? "Take a short break before the next exercise."
-        : step['text'] ?? "No description available.";
+        : (step['text'] ?? "Follow the exercise instructions.");
 
     final double overallProgress;
     if (workoutIsFinishedUI) {
       overallProgress = 1.0;
     } else {
-      overallProgress = currentStepIndex / steps.length;
+      overallProgress = (currentStepIndex + (isResting ? 0.5 : 0)) / steps.length;
     }
 
-    final bool isLastExerciseStep = currentStepIndex == steps.length - 1 && !isResting;
-    final String skipButtonText = isLastExerciseStep ? 'FINISH' : 'SKIP STEP';
-    final IconData skipButtonIcon = isLastExerciseStep ? Icons.check_circle : Icons.skip_next;
+    final bool isLastExerciseStep = currentStepIndex == steps.length - 1;
+    final String primaryButtonText = showingExercise 
+        ? (isLastExerciseStep ? 'FINISH WORKOUT' : 'NEXT STEP')
+        : (isPaused ? 'RESUME' : 'PAUSE');
+    final IconData primaryButtonIcon = showingExercise 
+        ? (isLastExerciseStep ? Icons.check_circle : Icons.arrow_forward)
+        : (isPaused ? Icons.play_arrow : Icons.pause);
+
+    final String secondaryButtonText = showingExercise 
+        ? 'SKIP EXERCISE' 
+        : 'SKIP REST';
+    final IconData secondaryButtonIcon = Icons.skip_next;
 
     final double circleSize = MediaQuery.of(context).size.width * 0.7;
     final double timerTextFontSize = 64;
@@ -333,9 +400,13 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
               child: Text(
                 workoutIsFinishedUI
                     ? 'WORKOUT COMPLETE!'
-                    : (isResting ? 'RESTING' : 'STEP ${currentStepIndex + 1} of ${steps.length}'),
+                    : (isResting 
+                        ? 'RESTING' 
+                        : showingExercise 
+                            ? 'EXERCISE ${currentStepIndex + 1} of ${steps.length}'
+                            : 'STEP ${currentStepIndex + 1} of ${steps.length}'),
                 key: ValueKey<String>(
-                    workoutIsFinishedUI ? 'complete' : 'step-${currentStepIndex}-${isResting}'),
+                    workoutIsFinishedUI ? 'complete' : 'step-${currentStepIndex}-${isResting}-${showingExercise}'),
                 style: const TextStyle( // Removed shadow
                   color: neonGreen,
                   fontSize: 18,
@@ -378,9 +449,31 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    if (!isResting)
+                    if (showingExercise && !isResting)
+                      Column(
+                        children: [
+                          Text(
+                            'Reps: ${step['reps'] ?? 'N/A'} | Sets: ${step['sets'] ?? 'N/A'}',
+                            style: const TextStyle(
+                              color: neonGreen,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          if (step['duration'] != null && step['duration'] > 0)
+                            Text(
+                              'Duration: ${step['duration']} seconds',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
+                            ),
+                        ],
+                      )
+                    else if (isResting)
                       Text(
-                        'Reps: ${step['reps'] ?? 'N/A'} | Sets: ${step['sets'] ?? 'N/A'}',
+                        'Rest time remaining',
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 14,
@@ -456,19 +549,39 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                           );
                         },
                         child: !workoutIsFinishedUI
-                            ? ScaleTransition(
-                                scale: _textPulseAnimation!,
-                                child: Text(
-                                  '$currentStepTime s',
-                                  key: ValueKey<int>(currentStepTime), // Key for AnimatedSwitcher
-                                  style: TextStyle(
-                                    color: neonGreen,
-                                    fontSize: timerTextFontSize,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.5,
-                                  ),
-                                ),
-                              )
+                            ? showingExercise && !isResting
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.fitness_center,
+                                        size: circleSize * 0.3,
+                                        color: neonGreen,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        'Ready?',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : ScaleTransition(
+                                    scale: _textPulseAnimation!,
+                                    child: Text(
+                                      '$currentStepTime s',
+                                      key: ValueKey<int>(currentStepTime), // Key for AnimatedSwitcher
+                                      style: TextStyle(
+                                        color: neonGreen,
+                                        fontSize: timerTextFontSize,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                  )
                             : Container(
                                 key: const ValueKey<String>('finished_check'),
                                 width: circleSize,
@@ -507,10 +620,20 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                       ),
                       elevation: 4, // Reduced elevation for a flatter look
                     ),
-                    onPressed: !workoutIsFinishedUI ? togglePause : null,
-                    icon: Icon(isPaused ? Icons.play_arrow : Icons.pause, size: 28),
+                    onPressed: !workoutIsFinishedUI 
+                        ? (showingExercise && !isResting
+                            ? () {
+                                if (currentStepIndex == steps.length - 1) {
+                                  _prepareForFinishUI();
+                                } else {
+                                  startExerciseTimer();
+                                }
+                              }
+                            : togglePause)
+                        : null,
+                    icon: Icon(primaryButtonIcon, size: 28),
                     label: Text(
-                      isPaused ? 'RESUME' : 'PAUSE',
+                      primaryButtonText,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                   ),
@@ -527,10 +650,16 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                       ),
                       elevation: 4, // Reduced elevation
                     ),
-                    onPressed: !workoutIsFinishedUI ? goToNextStep : null,
-                    icon: Icon(skipButtonIcon, size: 28),
+                    onPressed: !workoutIsFinishedUI 
+                        ? (showingExercise && !isResting
+                            ? goToNextStep  // Skip exercise
+                            : isResting 
+                                ? skipRest  // Skip rest
+                                : goToNextStep)  // Skip current step
+                        : null,
+                    icon: Icon(secondaryButtonIcon, size: 28),
                     label: Text(
-                      skipButtonText,
+                      secondaryButtonText,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                   ),
