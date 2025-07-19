@@ -6,7 +6,9 @@ import 'package:FitTrack/models/completed_workout_model.dart'; // Adjust import 
 // import 'package:your_app_name/models/workout_model.dart';
 
 class StatsScreen extends StatefulWidget {
-  const StatsScreen({super.key});
+  final VoidCallback? onToggleTheme;
+
+  const StatsScreen({Key? key, this.onToggleTheme}) : super(key: key);
 
   @override
   _StatsScreenState createState() => _StatsScreenState();
@@ -139,6 +141,21 @@ class _StatsScreenState extends State<StatsScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          if (widget.onToggleTheme != null)
+            IconButton(
+              icon: Icon(
+                Theme.of(context).brightness == Brightness.dark 
+                    ? Icons.light_mode 
+                    : Icons.dark_mode,
+                color: primaryColor,
+              ),
+              onPressed: widget.onToggleTheme,
+              tooltip: Theme.of(context).brightness == Brightness.dark 
+                  ? 'Switch to Light Mode' 
+                  : 'Switch to Dark Mode',
+            ),
+        ],
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: primaryColor))

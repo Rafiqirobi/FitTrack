@@ -18,17 +18,23 @@ class NavBottomBar extends StatefulWidget {
 class _NavBottomBarState extends State<NavBottomBar> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    HomeScreen(),
-    BrowseScreen(),
-    StatsScreen(),
-    ProfileScreen(),
-  ];
+  late final List<Widget> _pages;
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomeScreen(onToggleTheme: widget.onToggleTheme),
+      BrowseScreen(onToggleTheme: widget.onToggleTheme),
+      StatsScreen(onToggleTheme: widget.onToggleTheme),
+      ProfileScreen(),
+    ];
   }
 
   @override

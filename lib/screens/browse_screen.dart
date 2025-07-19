@@ -3,6 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/workout_model.dart'; // Make sure this path is correct
 
 class BrowseScreen extends StatefulWidget {
+  final VoidCallback? onToggleTheme;
+
+  const BrowseScreen({Key? key, this.onToggleTheme}) : super(key: key);
+
   @override
   _BrowseScreenState createState() => _BrowseScreenState();
 }
@@ -209,6 +213,15 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
               );
             },
           ),
+          if (widget.onToggleTheme != null)
+            IconButton(
+              icon: Icon(
+                isDark ? Icons.light_mode : Icons.dark_mode,
+                color: primaryColor,
+              ),
+              onPressed: widget.onToggleTheme,
+              tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+            ),
         ],
       ),
       body: Column(

@@ -46,6 +46,10 @@ import 'package:flutter/material.dart';
 
 
 class HomeScreen extends StatefulWidget {
+  final VoidCallback? onToggleTheme;
+
+  const HomeScreen({Key? key, this.onToggleTheme}) : super(key: key);
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -239,6 +243,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             letterSpacing: 1.2, // Adds a subtle, modern touch
           ),
         ),
+        actions: [
+          if (widget.onToggleTheme != null)
+            IconButton(
+              icon: Icon(
+                Theme.of(context).brightness == Brightness.dark 
+                    ? Icons.light_mode 
+                    : Icons.dark_mode,
+                color: Theme.of(context).primaryColor,
+              ),
+              onPressed: widget.onToggleTheme,
+              tooltip: Theme.of(context).brightness == Brightness.dark 
+                  ? 'Switch to Light Mode' 
+                  : 'Switch to Dark Mode',
+            ),
+        ],
       ),
       body: SafeArea( // Ensures content doesn't go under notches/status bar
         child: SingleChildScrollView( // Allows content to scroll if it overflows
