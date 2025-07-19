@@ -1,16 +1,18 @@
-// lib/models/workout_model.dart
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import for Timestamp if used
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 
 class Workout {
   final String id;
   final String name;
   final String description;
-  final int duration; // Total estimated duration in minutes
-  final int calories; // Estimated calories burned
+  final int duration;
+  final int calories;
   final String category;
-  final int restTime; // <--- ADD THIS PROPERTY (rest time in seconds between steps)
-  final List<Map<String, dynamic>> steps; // <--- ADD THIS PROPERTY (list of workout steps)
-  final String? imageUrl; // Optional main image URL
+  final int restTime;
+  final List<Map<String, dynamic>> steps;
+  final String? imageUrl;
+
+  final Timestamp? createdAt; // ✅ Add this
+  final Timestamp? updatedAt; // ✅ Add this
 
   Workout({
     required this.id,
@@ -19,32 +21,32 @@ class Workout {
     required this.duration,
     required this.calories,
     required this.category,
-    required this.restTime, // Add to constructor
-    required this.steps,    // Add to constructor
+    required this.restTime,
+    required this.steps,
     this.imageUrl,
+    this.createdAt,
+    this.updatedAt,
   });
 
-  // Factory constructor to create a Workout object from a Firestore map
   factory Workout.fromMap(Map<String, dynamic> data, {required String id}) {
     return Workout(
       id: id,
       name: data['name'] ?? 'Untitled Workout',
       description: data['description'] ?? 'No description provided.',
-      duration: data['duration'] as int? ?? 0, // Ensure type safety
-      calories: data['calories'] as int? ?? 0,   // Ensure type safety
+      duration: data['duration'] as int? ?? 0,
+      calories: data['calories'] as int? ?? 0,
       category: data['category'] ?? 'General',
-      restTime: data['restTime'] as int? ?? 0, // <--- IMPORTANT: Ensure restTime is read and cast to int
-      // Ensure steps is a List of maps. Firestore often gives List<dynamic>.
-      // We explicitly map it to List<Map<String, dynamic>>
+      restTime: data['restTime'] as int? ?? 0,
       steps: (data['steps'] as List<dynamic>?)
               ?.map((step) => Map<String, dynamic>.from(step))
               .toList() ??
           [],
       imageUrl: data['imageUrl'],
+      createdAt: data['createdAt'],
+      updatedAt: data['updatedAt'],
     );
   }
 
-  // Method to convert Workout object to a map for Firestore (useful for saving/updating)
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -55,7 +57,8 @@ class Workout {
       'restTime': restTime,
       'steps': steps,
       'imageUrl': imageUrl,
-      // 'isFavorite': isFavorite, // If you track favorite status in the model
+      'createdAt': createdAt ?? FieldValue.serverTimestamp(), // fallback if null
+      'updatedAt': FieldValue.serverTimestamp(),
     };
   }
 }

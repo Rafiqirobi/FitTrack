@@ -15,7 +15,7 @@ import 'screens/nav_bottom_bar.dart'; // Main navigation
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //await Firebase.initializeApp();
+  await Firebase.initializeApp();
   runApp(FitTrackApp());
 }
 
