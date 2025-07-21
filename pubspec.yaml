@@ -52,13 +52,16 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  flutter_launcher_icons: ^0.13.1
   flutter_lints: ^4.0.0
+
+# Flutter Launcher Icons configuration
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/fittracklogo.png"
+  adaptive_icon_background: "#000000" # Black background
+  adaptive_icon_foreground: "assets/icon/fittracklogo.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -93,27 +96,11 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  fonts:
-    - family: HeadingNow91-98
-      fonts:
-        - asset: fonts/HeadingNow91-98-Regular.ttf
-        - asset: fonts/HeadingNow91-98-Bold.ttf
-          weight: 700
-        - asset: fonts/HeadingNow91-98-BoldItalic.ttf
-          weight: 700
-          style: italic
-        - asset: fonts/HeadingNow91-98-Italic.ttf
-          style: italic
-  #   - family: Schyler
+  # fonts:
+  #   - family: CustomFont
   #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
+  #       - asset: fonts/CustomFont-Regular.ttf
+  #         weight: 400
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

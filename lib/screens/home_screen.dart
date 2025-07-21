@@ -666,13 +666,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         backgroundColor: Colors.transparent, // Transparent AppBar
         elevation: 0, // No shadow under AppBar
         title: Text(
-          'FitTrack',
+          'FITTRACK',
           style: TextStyle(
             color: Theme.of(context).primaryColor, // Use primary color for branding
             fontWeight: FontWeight.w900, // Heavy weight like splash screen
             fontStyle: FontStyle.italic, // Italic like splash screen
             fontSize: 28, // Slightly larger for app bar
-            letterSpacing: 1.5, // Consistent with splash screen
+            letterSpacing: 3.0, // Match splash screen spacing
             fontFamily: 'HeadingNow91-98', // Same font as splash screen
             shadows: [
               Shadow(

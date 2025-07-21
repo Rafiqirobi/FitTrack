@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'services/notification_service.dart';
 //import 'utils/firebase_seed.dart'; // Workout seeding completed
 
@@ -32,7 +33,78 @@ class FitTrackApp extends StatefulWidget {
 }
 
 class _FitTrackAppState extends State<FitTrackApp> {
+  // Light theme configuration
+  final ThemeData _neonLightTheme = ThemeData(
+    brightness: Brightness.light,
+    primaryColor: Color(0xFFFF5722), // Orange primary
+    scaffoldBackgroundColor: Colors.white,
+    colorScheme: ColorScheme.light(
+      primary: Color(0xFFFF5722), // Orange primary
+      secondary: Color(0xFFFF7043), // Light orange
+      surface: Colors.white,
+      background: Colors.white,
+      error: Color(0xFFE53935),
+      onPrimary: Colors.white,
+      tertiary: Color(0xFFFF8A65), // Lighter orange
+      onSecondary: Colors.white,
+      onSurface: Colors.black87,
+    ),
+    cardColor: Colors.white,
+    dividerColor: Color(0xFFEEEEEE),
+  );
+
+  // Dark theme configuration
+  final ThemeData _neonDarkTheme = ThemeData(
+    brightness: Brightness.dark,
+    primaryColor: Color(0xFFFF5722), // Orange primary
+    scaffoldBackgroundColor: Color(0xFF0A0A0A), // Near black
+    colorScheme: ColorScheme.dark(
+      primary: Color(0xFFFF5722), // Orange primary
+      secondary: Color(0xFFFF7043), // Light orange
+      surface: Color(0xFF121212), // Slightly lighter black
+      background: Color(0xFF0A0A0A), // Near black
+      error: Color(0xFFE53935),
+      onPrimary: Colors.white,
+      tertiary: Color(0xFFFF8A65), // Lighter orange
+      onSecondary: Colors.white,
+      onSurface: Colors.white,
+    ),
+  );
   ThemeMode _themeMode = ThemeMode.system;
+
+  // Define text themes using Google Fonts
+  TextTheme _buildTextTheme(TextTheme base) {
+    return base.copyWith(
+      headlineLarge: GoogleFonts.montserrat(
+        textStyle: base.headlineLarge,
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+      ),
+      headlineMedium: GoogleFonts.montserrat(
+        textStyle: base.headlineMedium,
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+      ),
+      titleLarge: GoogleFonts.montserrat(
+        textStyle: base.titleLarge,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      bodyLarge: GoogleFonts.roboto(
+        textStyle: base.bodyLarge,
+        fontSize: 16,
+      ),
+      bodyMedium: GoogleFonts.roboto(
+        textStyle: base.bodyMedium,
+        fontSize: 14,
+      ),
+      labelLarge: GoogleFonts.roboto(
+        textStyle: base.labelLarge,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -93,12 +165,20 @@ class _FitTrackAppState extends State<FitTrackApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Apply Google Fonts text theme to both light and dark themes
+    final lightTheme = _neonLightTheme.copyWith(
+      textTheme: _buildTextTheme(_neonLightTheme.textTheme),
+    );
+    final darkTheme = _neonDarkTheme.copyWith(
+      textTheme: _buildTextTheme(_neonDarkTheme.textTheme),
+    );
+
     return MaterialApp(
       title: 'FitTrack',
       debugShowCheckedModeBanner: false,
       themeMode: _themeMode,
-      theme: neonLightTheme,
-      darkTheme: neonDarkTheme,
+      theme: lightTheme,
+      darkTheme: darkTheme,
       initialRoute: '/', // Splash screen starts first
       routes: {
         '/': (context) => SplashScreen(),
@@ -119,61 +199,63 @@ class _FitTrackAppState extends State<FitTrackApp> {
 // 🎨 Dark Theme
 final ThemeData neonDarkTheme = ThemeData(
   brightness: Brightness.dark,
-  primaryColor: const Color(0xFFCCFF00),
-  scaffoldBackgroundColor: const Color(0xFF121212),
-  cardColor: const Color(0xFF1E1E1E),
-  iconTheme: const IconThemeData(color: Color(0xFFCCFF00)),
+  primaryColor: Color(0xFFFF5722),
+  scaffoldBackgroundColor: Color(0xFF0A0A0A),
+  cardColor: Color(0xFF121212),
+  iconTheme: const IconThemeData(color: Color(0xFFFF5722)),
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
-    backgroundColor: Color(0xFFCCFF00),
-    foregroundColor: Colors.black,
+    backgroundColor: Color(0xFFFF5722),
+    foregroundColor: Colors.white,
   ),
   textTheme: const TextTheme(
     bodyLarge: TextStyle(color: Colors.white),
-    bodyMedium: TextStyle(color: Colors.white),
+    bodyMedium: TextStyle(color: Colors.white70),
     titleLarge: TextStyle(
-      color: Color(0xFFCCFF00),
+      color: Color(0xFFFF5722),
       fontWeight: FontWeight.bold,
     ),
   ),
   appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xFF121212),
-    foregroundColor: Color(0xFFCCFF00),
+    backgroundColor: Color(0xFF0A0A0A),
+    foregroundColor: Color(0xFFFF5722),
     elevation: 0,
   ),
   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-    backgroundColor: Color(0xFF121212),
-    selectedItemColor: Color(0xFFCCFF00),
+    backgroundColor: Color(0xFF0A0A0A),
+    selectedItemColor: Color(0xFFFF5722),
     unselectedItemColor: Colors.grey,
+    elevation: 8,
   ),
 );
 
 // 🎨 Light Theme
 final ThemeData neonLightTheme = ThemeData(
   brightness: Brightness.light,
-  primaryColor: const Color(0xFFFF2CCB),
+  primaryColor: Color(0xFFFF5722),
   scaffoldBackgroundColor: Colors.white,
-  cardColor: Colors.grey[200],
-  iconTheme: const IconThemeData(color: Color(0xFFFF2CCB)),
+  cardColor: Colors.white,
+  iconTheme: const IconThemeData(color: Color(0xFFFF5722)),
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
-    backgroundColor: Color(0xFFFF2CCB),
+    backgroundColor: Color(0xFFFF5722),
     foregroundColor: Colors.white,
   ),
   textTheme: const TextTheme(
-    bodyLarge: TextStyle(color: Colors.black),
-    bodyMedium: TextStyle(color: Colors.black),
+    bodyLarge: TextStyle(color: Colors.black87),
+    bodyMedium: TextStyle(color: Colors.black54),
     titleLarge: TextStyle(
-      color: Color(0xFFFF2CCB),
+      color: Color(0xFFFF5722),
       fontWeight: FontWeight.bold,
     ),
   ),
   appBarTheme: const AppBarTheme(
     backgroundColor: Colors.white,
-    foregroundColor: Color(0xFFFF2CCB),
+    foregroundColor: Color(0xFFFF5722),
     elevation: 0,
   ),
   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
     backgroundColor: Colors.white,
-    selectedItemColor: Color(0xFFFF2CCB),
-    unselectedItemColor: Colors.grey,
+    selectedItemColor: Color(0xFFFF5722),
+    unselectedItemColor: Color(0xFF9E9E9E),
+    elevation: 8,
   ),
 );

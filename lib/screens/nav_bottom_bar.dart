@@ -41,10 +41,11 @@ class _NavBottomBarState extends State<NavBottomBar> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    final Color homePillColor = isDarkMode ? const Color(0xFFCCFF00) : const Color(0xFFFF2CCB);
-    final Color browsePillColor = isDarkMode ? Colors.blueAccent : Colors.lightBlueAccent;
-    final Color progressPillColor = isDarkMode ? Colors.purpleAccent : Colors.deepPurpleAccent;
-    final Color profilePillColor = isDarkMode ? Colors.orangeAccent : Colors.deepOrangeAccent;
+    final Color pillColor = const Color(0xFFFF5722); // Orange primary color for all items
+    final Color homePillColor = pillColor;
+    final Color browsePillColor = pillColor;
+    final Color progressPillColor = pillColor;
+    final Color profilePillColor = pillColor;
 
     return Scaffold(
       body: IndexedStack(

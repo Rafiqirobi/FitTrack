@@ -14,6 +14,21 @@ class FirestoreService {
     return _auth.currentUser?.uid;
   }
 
+  // Method to remove a workout from favorites
+  Future<void> removeFavoriteWorkout(String workoutId) async {
+    final userId = getCurrentUserId();
+    if (userId == null) {
+      throw Exception("User not logged in.");
+    }
+
+    await _db
+        .collection('users')
+        .doc(userId)
+        .collection('favorites')
+        .doc(workoutId)
+        .delete();
+  }
+
   // Method to save a new workout
   Future<void> saveWorkout(Workout workout) async {
     // This method is for saving a 'Workout' model, typically created by an admin or user for future use.

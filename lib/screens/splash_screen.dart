@@ -136,16 +136,12 @@ class _SplashScreenState extends State<SplashScreen>
                       fontSize: 52,
                       fontWeight: FontWeight.w900, // Heavy weight (91-98 range)
                       fontStyle: FontStyle.italic, // ITALIC like in your logo image
-                      color: isDarkMode 
-                          ? const Color(0xFFCCFF00) // Neon green for dark mode
-                          : const Color(0xFFFF2CCB), // Neon pink for light mode
+                      color: const Color(0xFFFF5722), // Orange primary color
                       letterSpacing: 3.0,
                       fontFamily: 'HeadingNow91-98', // Updated to use Heading Now 91-98 font
                       shadows: [
                         Shadow(
-                          color: isDarkMode 
-                              ? const Color(0xFFCCFF00).withOpacity(0.5)
-                              : const Color(0xFFFF2CCB).withOpacity(0.5),
+                          color: const Color(0xFFFF5722).withOpacity(0.5), // Orange shadow
                           blurRadius: 10,
                           offset: const Offset(2, 2),
                         ),
