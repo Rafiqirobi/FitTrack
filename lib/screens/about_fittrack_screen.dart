@@ -55,16 +55,16 @@ class AboutFitTrackScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    // App Name - styled like splash screen
+                    // App Name - 
                     Text(
                       'FITTRACK',
                       style: TextStyle(
                         fontSize: 48,
-                        fontWeight: FontWeight.w900, // Heavy weight like splash screen
-                        fontStyle: FontStyle.italic, // Italic like splash screen
+                        fontWeight: FontWeight.w900,
+                        fontStyle: FontStyle.italic, 
                         color: theme.primaryColor,
                         letterSpacing: 3.0,
-                        fontFamily: 'HeadingNow91-98', // Same font as splash screen
+                        fontFamily: 'HeadingNow91-98', 
                         shadows: [
                           Shadow(
                             color: theme.primaryColor.withOpacity(0.5),

@@ -20,6 +20,16 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     _loadSettings();
   }
 
+  /// Loads the notification settings from SharedPreferences.
+  ///
+  /// The settings are loaded into the state variables:
+  ///
+  /// - `_workoutReminders`: If workout reminders are enabled.
+  /// - `_motivationalQuotes`: If motivational quotes are enabled.
+  /// - `_reminderTime`: The time of day when the workout reminder should go off.
+  ///
+  /// If a setting is not found in SharedPreferences, it is set to its default
+  /// value.
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {

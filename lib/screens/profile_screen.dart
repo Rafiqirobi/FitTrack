@@ -50,6 +50,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+/*************  ✨ Windsurf Command ⭐  *************/
+  /// Displays a confirmation dialog to clear the user's workout history.
+  ///
+  /// If the user confirms, deletes all documents in the `completedWorkouts`
+  /// subcollection for the current user in Firestore. Shows a success or
+  /// failure message upon completion. This action is irreversible.
+
+/*******  7763298c-3272-454d-8775-88ff2ae2088d  *******/
   Future<void> _clearWorkoutHistory() async {
     showDialog(
       context: context,
@@ -133,6 +141,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
+/*************  ✨ Windsurf Command ⭐  *************/
+  /// Displays a dialog for editing the user's profile information.
+  ///
+  /// The dialog contains text fields for the user to update their username,
+  /// email, and optionally, their password. The dialog adapts to the current
+  /// theme (dark or light) for styling. Upon confirmation, the inputs are
+  /// passed to the `_updateProfile` method. The dialog can be dismissed by
+  /// either pressing the 'Cancel' button or saving the changes.
+
+/*******  b62bcae0-00c2-48f6-8906-b95a769492ce  *******/
               child: Text('Clear History'),
             ),
           ],
@@ -311,6 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             content: Text('Profile updated successfully'),
             backgroundColor: Colors.green,
           ),
+
         );
       }
     } catch (e) {
@@ -495,16 +514,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     Navigator.pushNamedAndRemoveUntil(
                                       context,
                                       '/login',
+
+/*************  ✨ Windsurf Command ⭐  *************/
+/// Builds a section with a title and a list of child widgets.
+///
+/// The section consists of a title displayed with a specific text style,
+/// followed by a container that encapsulates the provided child widgets.
+/// The container has a rounded border and a subtle border color.
+///
+/// Parameters:
+/// - `title`: The title text to be displayed at the top of the section.
+/// - `children`: A list of widgets that will be placed inside the container.
+/// - `context`: The build context used to retrieve theme information for styling.
+
+/*******  ae583069-1d84-4f7f-a297-2fce8eca4d22  *******/
+
                                       (_) => false,
                                     );
                                   },
                                   child: Text(
+
                                     'Logout',
                                     style: TextStyle(color: Colors.red),
                                   ),
                                 ),
                               ],
-                            );
+/*************  ✨ Windsurf Command ⭐  *************/
+  /// Builds a tile widget with an icon, label, and a forward arrow, wrapped in an InkWell for tap interaction.
+  ///
+  /// The tile consists of an icon with a colored background, a label text, and a forward arrow. The icon and label
+  /// are styled based on the current theme. The entire tile is tappable, triggering the provided onTap callback.
+  ///
+  /// Parameters:
+  /// - `icon`: The icon to display on the left side of the tile.
+  /// - `label`: The label text to display next to the icon.
+  /// - `onTap`: Callback function to execute when the tile is tapped.
+  /// - `context`: The build context used to obtain theme data for styling.
+
+/*******  bb0ff7a7-7959-41dd-b016-1b85ee3315a9  *******/
+
+
+/*************  ✨ Windsurf Command ⭐  *************/
+  /// Builds a single tile with an icon and a label, along with a forward
+  /// arrow icon on the right side of the tile.
+  ///
+  /// The tile is a rounded rectangle with a background color that is
+  /// based on the theme's primary color. The icon is displayed on the left
+  /// side with a rounded rectangle background that is also based on the
+  /// theme's primary color. The label is displayed on the right side with
+  /// a font size of 16 and a font weight of 500. The forward arrow icon is
+  /// displayed on the right side with a size of 16 and a color of grey[400].
+  ///
+  /// Parameters:
+  ///   - `label`: The label text to be displayed on the right side of the tile.
+  ///   - `onTap`: The callback to be executed when the tile is tapped.
+  ///   - `context`: The build context used to retrieve theme information for styling.
+
+/*******  7265c093-863a-476d-9746-a2e9fc88e178  *******/                            );
+
                           },
                         );
                       },

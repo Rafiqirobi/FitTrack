@@ -11,7 +11,7 @@ class BrowseScreen extends StatefulWidget {
   _BrowseScreenState createState() => _BrowseScreenState();
 }
 
-// IMPORTANT: Add TickerProviderStateMixin to your State class
+
 class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMixin {
   List<Workout> _workouts = [];
   List<Workout> _allWorkouts = []; // Store all workouts for search
@@ -80,7 +80,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
 
   @override
   void initState() {
-    // !!! IMPORTANT: Call super.initState() first !!!
+   
     super.initState();
 
     // Initialize Category List Animations
@@ -461,9 +461,9 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
           ),
         ],
       ),
-    ), // This closes the RefreshIndicator
-  ); // This closes the Scaffold
-  } // This closes the build method
+    ), 
+  ); 
+  } 
 
   // Helper function to get category icon (moved outside build for cleanliness)
   IconData _getCategoryIcon(String category) {
@@ -487,7 +487,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
       case 'hiit':
         return Icons.local_fire_department;
       default:
-        return Icons.sports_gymnastics; // Generic icon for 'All' or unknown
+        return Icons.sports_gymnastics; 
     }
   }
 

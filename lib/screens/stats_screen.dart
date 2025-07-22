@@ -425,7 +425,6 @@ class _StatsScreenState extends State<StatsScreen> {
       }
     }
 
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(

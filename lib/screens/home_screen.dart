@@ -8,51 +8,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:FitTrack/models/completed_workout_model.dart';
 
-// Ensure your main.dart or app setup includes a MaterialApp
-// with defined themes (light and dark) for primaryColor, scaffoldBackgroundColor,
-// cardColor, and textTheme to see the full effect.
-// Example:
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'FitTrack App',
-//       theme: ThemeData(
-//         primarySwatch: Colors.teal,
-//         scaffoldBackgroundColor: Colors.grey[50],
-//         cardColor: Colors.white,
-//         textTheme: TextTheme(
-//           headlineLarge: TextStyle(color: Colors.black87),
-//           headlineMedium: TextStyle(color: Colors.black87),
-//         ),
-//         appBarTheme: AppBarTheme(
-//           iconTheme: IconThemeData(color: Colors.black87),
-//         ),
-//       ),
-//       darkTheme: ThemeData(
-//         primarySwatch: Colors.teal,
-//         scaffoldBackgroundColor: Colors.grey[900],
-//         cardColor: Colors.grey[850],
-//         textTheme: TextTheme(
-//           headlineLarge: TextStyle(color: Colors.white),
-//           headlineMedium: TextStyle(color: Colors.white),
-//         ),
-//         appBarTheme: AppBarTheme(
-//           iconTheme: IconThemeData(color: Colors.white),
-//         ),
-//       ),
-//       themeMode: ThemeMode.system, // Or ThemeMode.dark / ThemeMode.light for testing
-//       initialRoute: '/',
-//       routes: {
-//         '/': (context) => HomeScreen(),
-//         '/workoutDetail': (context) => WorkoutDetailScreen(), // Replace with your actual screens
-//         '/browse': (context) => BrowseWorkoutsScreen(),       // Replace with your actual screens
-//       },
-//     );
-//   }
-// }
-
-
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onToggleTheme;
 
