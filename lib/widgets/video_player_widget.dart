@@ -4,7 +4,7 @@ import 'package:video_player/video_player.dart';
 class VideoPlayerWidget extends StatefulWidget {
   final String assetPath;
 
-  const VideoPlayerWidget({required this.assetPath});
+  const VideoPlayerWidget({super.key, required this.assetPath});
 
   @override
   _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
@@ -40,7 +40,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         : Container(
             height: 200,
             color: Colors.black12,
-            child: Center(child: CircularProgressIndicator()),
+            child: const Center(child: CircularProgressIndicator()),
           );
   }
 }

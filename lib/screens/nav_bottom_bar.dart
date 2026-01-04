@@ -1,10 +1,9 @@
-// lib/screens/nav_bottom_bar.dart
 import 'package:flutter/material.dart';
 import 'package:FitTrack/screens/home_screen.dart';
 import 'package:FitTrack/screens/profile_screen.dart';
 import 'package:FitTrack/screens/browse_screen.dart';
 import 'package:FitTrack/screens/stats_screen.dart';
-import 'package:FitTrack/widgets/animated_bottom_bar_item.dart';
+// Note: Removed dependency on AnimatedBottomBarItem since the design is now custom built.
 
 class NavBottomBar extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -26,6 +25,11 @@ class _NavBottomBarState extends State<NavBottomBar> {
     });
   }
 
+  // Function to navigate to the GPS screen
+  void _navigateToGpsScreen() {
+    Navigator.of(context).pushNamed('/gpsInterface');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -37,22 +41,84 @@ class _NavBottomBarState extends State<NavBottomBar> {
     ];
   }
 
+  // --- NEW Custom Navigation Item Builder Method to mimic the image design ---
+  Widget _buildNavItem(int index, IconData unselectedIcon, IconData selectedIcon, String label, Color primaryColor) {
+    final isSelected = _selectedIndex == index;
+    // Unselected color uses the theme's unselected color for consistency
+    final color = Theme.of(context).unselectedWidgetColor;
+    
+    // Icon and label color is the primary color if selected, or the unselected color otherwise
+    final itemColor = isSelected ? primaryColor : color;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        // Use a fixed height and center alignment to create a consistent tap area
+        child: Container(
+          height: 55, 
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon
+              Icon(
+                isSelected ? selectedIcon : unselectedIcon,
+                color: itemColor,
+                size: 22,
+              ),
+              
+              // Label
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  fontSize: 10,
+                  color: itemColor,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+
+              // Selection Indicator (Small Pill/Dot - located *under* the label, matching the image)
+              Container(
+                width: isSelected ? 15 : 0, // Make it a small pill length
+                height: isSelected ? 3 : 0,
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                margin: const EdgeInsets.only(top: 2), // Small gap above the indicator
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  // --------------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    final Color pillColor = const Color(0xFFFF5722); // Orange primary color for all items
-    final Color homePillColor = pillColor;
-    final Color browsePillColor = pillColor;
-    final Color progressPillColor = pillColor;
-    final Color profilePillColor = pillColor;
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
+      // --- FAB (Central Item) ---
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navigateToGpsScreen,
+        tooltip: 'Start GPS Tracking',
+        child: const Icon(Icons.location_on_rounded, size: 30),
+      ),
+      // Position the FAB centrally above the custom bottom bar
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      // --------------------------
+
       body: IndexedStack(
         index: _selectedIndex,
         children: _pages,
       ),
+
+      // --- Custom Bottom Bar Implementation using BottomAppBar for FAB docking ---
       bottomNavigationBar: Container(
+        // Retain the margin for the floating effect
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
           color: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
@@ -68,62 +134,31 @@ class _NavBottomBarState extends State<NavBottomBar> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(30),
-          child: BottomNavigationBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            type: BottomNavigationBarType.fixed,
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            selectedItemColor: Colors.black,
-            unselectedItemColor: Theme.of(context).unselectedWidgetColor,
-            showSelectedLabels: false,
-            showUnselectedLabels: false,
-            items: <BottomNavigationBarItem>[
-              BottomNavigationBarItem(
-                icon: AnimatedBottomBarItem(
-                  icon: Icons.home_outlined,
-                  selectedIcon: Icons.home,
-                  label: '',
-                  selectedColor: homePillColor,
-                  isDarkMode: isDarkMode,
-                  isSelected: _selectedIndex == 0,
-                ),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: AnimatedBottomBarItem(
-                  icon: Icons.search_outlined,
-                  selectedIcon: Icons.search,
-                  label: '',
-                  selectedColor: browsePillColor,
-                  isDarkMode: isDarkMode,
-                  isSelected: _selectedIndex == 1,
-                ),
-                label: 'Browse',
-              ),
-              BottomNavigationBarItem(
-                icon: AnimatedBottomBarItem(
-                  icon: Icons.bar_chart_outlined,
-                  selectedIcon: Icons.bar_chart,
-                  label: '',
-                  selectedColor: progressPillColor,
-                  isDarkMode: isDarkMode,
-                  isSelected: _selectedIndex == 2,
-                ),
-                label: 'Stats',
-              ),
-              BottomNavigationBarItem(
-                icon: AnimatedBottomBarItem(
-                  icon: Icons.person_outline,
-                  selectedIcon: Icons.person,
-                  label: '',
-                  selectedColor: profilePillColor,
-                  isDarkMode: isDarkMode,
-                  isSelected: _selectedIndex == 3,
-                ),
-                label: 'Profile',
-              ),
-            ],
+          // Use BottomAppBar for the shape cut-out required by the centerDocked FAB
+          child: BottomAppBar(
+            elevation: 0, // Elevation handled by the outer Container's shadow
+            color: Colors.transparent, // Color handled by the outer Container
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 10.0, // Increased margin to make the FAB float lower relative to the bar
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                // Item 0: Home
+                _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home', primaryColor),
+                
+                // Item 1: Browse (Search)
+                _buildNavItem(1, Icons.search_outlined, Icons.search, 'Browse', primaryColor),
+
+                // Spacer for the FAB (Note: the CircularNotchedRectangle handles most of the space)
+                const SizedBox(width: 20), 
+
+                // Item 2: Stats (Bar Chart)
+                _buildNavItem(2, Icons.bar_chart_outlined, Icons.bar_chart, 'Stats', primaryColor),
+                
+                // Item 3: Profile (Person)
+                _buildNavItem(3, Icons.person_outline, Icons.person, 'Profile', primaryColor),
+              ],
+            ),
           ),
         ),
       ),

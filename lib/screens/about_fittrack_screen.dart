@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AboutFitTrackScreen extends StatelessWidget {
+  const AboutFitTrackScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -23,7 +25,7 @@ class AboutFitTrackScreen extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(
           gradient: isDarkMode 
-            ? LinearGradient(
+            ? const LinearGradient(
                 colors: [Color(0xFF0D0D0D), Color(0xFF1A1A1A)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -49,7 +51,7 @@ class AboutFitTrackScreen extends StatelessWidget {
                     BoxShadow(
                       color: theme.primaryColor.withOpacity(0.1),
                       blurRadius: 10,
-                      offset: Offset(0, 5),
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
@@ -154,14 +156,14 @@ class AboutFitTrackScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
                         Icon(
                           Icons.star_outline,
                           color: Colors.orange,
                           size: 24,
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Text(
                           'Key Features',
                           style: TextStyle(
@@ -200,14 +202,14 @@ class AboutFitTrackScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
                         Icon(
                           Icons.business,
                           color: Colors.purple,
                           size: 24,
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Text(
                           'Created by SaripDol',
                           style: TextStyle(
@@ -237,17 +239,17 @@ class AboutFitTrackScreen extends StatelessWidget {
                           child: OutlinedButton.icon(
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
+                                const SnackBar(
                                   content: Text('Contact: contact@saripdol.com'),
                                   backgroundColor: Colors.purple,
                                 ),
                               );
                             },
-                            icon: Icon(Icons.email_outlined),
-                            label: Text('Contact Us'),
+                            icon: const Icon(Icons.email_outlined),
+                            label: const Text('Contact Us'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.purple,
-                              side: BorderSide(color: Colors.purple),
+                              side: const BorderSide(color: Colors.purple),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -259,14 +261,14 @@ class AboutFitTrackScreen extends StatelessWidget {
                           child: ElevatedButton.icon(
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
+                                const SnackBar(
                                   content: Text('Website: www.saripdol.com'),
                                   backgroundColor: Colors.purple,
                                 ),
                               );
                             },
-                            icon: Icon(Icons.web),
-                            label: Text('Website'),
+                            icon: const Icon(Icons.web),
+                            label: const Text('Website'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.purple,
                               foregroundColor: Colors.white,
@@ -353,7 +355,7 @@ class AboutFitTrackScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.orange,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,

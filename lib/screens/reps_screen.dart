@@ -6,6 +6,8 @@ class RepsScreen extends StatelessWidget {
   static const Color neonGreen = Color(0xFFCCFF00);
   static const Color darkBg = Color(0xFF121212);
 
+  const RepsScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final workout = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;

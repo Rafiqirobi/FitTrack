@@ -11,7 +11,7 @@ import 'package:FitTrack/models/completed_workout_model.dart';
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onToggleTheme;
 
-  const HomeScreen({Key? key, this.onToggleTheme}) : super(key: key);
+  const HomeScreen({super.key, this.onToggleTheme});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -193,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _weeklyWorkouts = weeklyWorkouts;
     });
 
-    print('🔄 Home: Stats updated - Today: ${_todayMinutes} min, This week: ${_weeklyWorkouts} workouts');
+    print('🔄 Home: Stats updated - Today: $_todayMinutes min, This week: $_weeklyWorkouts workouts');
   }
 
   Future<void> _generateRandomQuote() async {
@@ -252,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _loadFavoriteWorkouts();
     
     // Small delay for better UX
-    await Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 500));
     
     print('🔄 Home: Pull-to-refresh completed');
   }
@@ -262,9 +262,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('🚀 Starting $workoutName...'),
-        duration: Duration(milliseconds: 1500),
+        duration: const Duration(milliseconds: 1500),
         behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(16.0),
+        margin: const EdgeInsets.all(16.0),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
@@ -303,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         title: Row(
           children: [
             Icon(Icons.flag_outlined, color: Theme.of(context).primaryColor),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Text(
               'Set Your Goals',
               style: TextStyle(
@@ -325,7 +325,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 isDarkMode: isDarkMode,
                 icon: Icons.timer,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               
               // Weekly Workouts Goal
               _buildGoalInputField(
@@ -335,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 isDarkMode: isDarkMode,
                 icon: Icons.calendar_today,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               
               // Monthly Calories Goal
               _buildGoalInputField(
@@ -390,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('🎯 Goals updated successfully!'),
+                    content: const Text('🎯 Goals updated successfully!'),
                     backgroundColor: Colors.green,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -405,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: Text('Save Goals'),
+            child: const Text('Save Goals'),
           ),
         ],
       ),
@@ -583,7 +583,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             SnackBar(
               content: Text(message),
               behavior: SnackBarBehavior.floating, // Modern floating style
-              margin: EdgeInsets.all(16.0), // Margin around the SnackBar
+              margin: const EdgeInsets.all(16.0), // Margin around the SnackBar
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10), // Rounded corners
               ),
@@ -660,7 +660,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           color: Theme.of(context).primaryColor,
           backgroundColor: Theme.of(context).cardColor,
           child: SingleChildScrollView( // Allows content to scroll if it overflows
-            physics: AlwaysScrollableScrollPhysics(), // Enables pull-to-refresh even when content doesn't fill screen
+            physics: const AlwaysScrollableScrollPhysics(), // Enables pull-to-refresh even when content doesn't fill screen
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0), // Adjusted padding
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start, // Align children to the start (left)
@@ -689,7 +689,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ),
                         ),
                       ),
-                      SizedBox(width: 18), // Slightly increased spacing
+                      const SizedBox(width: 18), // Slightly increased spacing
                       Expanded(
                         child: _buildStatCard(
                           'This Week',
@@ -704,7 +704,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              SizedBox(height: 35), // Increased spacing
+              const SizedBox(height: 35), // Increased spacing
 
               // Motivational Quote Card (with Fade and Slide Animations)
               FadeTransition(
@@ -878,7 +878,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              SizedBox(height: 35), // Increased spacing
+              const SizedBox(height: 35), // Increased spacing
 
               // Favourite Workouts - Section Title
               Row(
@@ -904,7 +904,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         color: Theme.of(context).primaryColor,
                       ),
                       label: Text(
-                        _totalFavoriteCount > 3 ? 'View All (${_totalFavoriteCount})' : 'View All',
+                        _totalFavoriteCount > 3 ? 'View All ($_totalFavoriteCount)' : 'View All',
                         style: TextStyle(
                           color: Theme.of(context).primaryColor,
                           fontSize: 14,
@@ -912,14 +912,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
                       style: TextButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        minimumSize: Size(0, 0),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: const Size(0, 0),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ),
                 ],
               ),
-              SizedBox(height: 18), // Slightly increased spacing
+              const SizedBox(height: 18), // Slightly increased spacing
 
               // Favourite Workouts List
               ScaleTransition(
@@ -927,7 +927,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: _loadingFavoriteWorkouts
                     ? Container(
                         width: double.infinity,
-                        padding: EdgeInsets.all(40),
+                        padding: const EdgeInsets.all(40),
                         decoration: BoxDecoration(
                           color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(20),
@@ -939,7 +939,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               color: Theme.of(context).primaryColor,
                               strokeWidth: 2,
                             ),
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             Text(
                               'Loading your favourite workouts...',
                               style: TextStyle(
@@ -953,7 +953,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     : _favoriteWorkouts.isEmpty
                         ? Container(
                             width: double.infinity,
-                            padding: EdgeInsets.all(28.0),
+                            padding: const EdgeInsets.all(28.0),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
@@ -995,7 +995,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                         ),
                                       ],
                                     ),
-                                    SizedBox(height: 20),
+                                    const SizedBox(height: 20),
                                     Text(
                                       'No Favourites Yet!',
                                       style: TextStyle(
@@ -1004,7 +1004,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    SizedBox(height: 10),
+                                    const SizedBox(height: 10),
                                     Text(
                                       'Explore workouts and add your favorites!',
                                       style: TextStyle(
@@ -1038,7 +1038,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                       child: Row(
                                         children: [
                                           Container(
-                                            padding: EdgeInsets.all(12),
+                                            padding: const EdgeInsets.all(12),
                                             decoration: BoxDecoration(
                                               color: Theme.of(context).primaryColor.withOpacity(0.15),
                                               borderRadius: BorderRadius.circular(12),
@@ -1049,7 +1049,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                               size: 24,
                                             ),
                                           ),
-                                          SizedBox(width: 16),
+                                          const SizedBox(width: 16),
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1062,7 +1062,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
-                                                SizedBox(height: 4),
+                                                const SizedBox(height: 4),
                                                 Text(
                                                   '${workout.category} • ${workout.duration} min • ${workout.calories} cal',
                                                   style: TextStyle(
@@ -1070,7 +1070,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                                     fontSize: 14,
                                                   ),
                                                 ),
-                                                SizedBox(height: 4),
+                                                const SizedBox(height: 4),
                                                 Text(
                                                   'Favourite workout',
                                                   style: TextStyle(
@@ -1096,7 +1096,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ),
               ),
 
-              SizedBox(height: 35), // Increased spacing
+              const SizedBox(height: 35), // Increased spacing
 
               // Workout Categories - Section Title
               Row(
@@ -1129,19 +1129,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
                     style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      minimumSize: Size(0, 0),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: const Size(0, 0),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 18),
+              const SizedBox(height: 18),
 
               // Workout Categories Grid (with staggered Fade and Slide Animations)
               GridView.count(
                 shrinkWrap: true, // Takes only as much space as its children need
-                physics: NeverScrollableScrollPhysics(), // Prevents nested scrolling
+                physics: const NeverScrollableScrollPhysics(), // Prevents nested scrolling
                 crossAxisCount: 2, // 2 cards per row
                 crossAxisSpacing: 18, // Spacing between columns
                 mainAxisSpacing: 18, // Spacing between rows
@@ -1204,7 +1204,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ],
               ),
 
-              SizedBox(height: 20), // Padding at the very bottom
+              const SizedBox(height: 20), // Padding at the very bottom
             ],
             ),
           ),
@@ -1218,7 +1218,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       Color backgroundColor, Color iconColor, bool isDarkMode) {
     return Container(
       height: 140, // Fixed height to match goal card
-      padding: EdgeInsets.all(20), // More padding
+      padding: const EdgeInsets.all(20), // More padding
       decoration: BoxDecoration(
         color: backgroundColor, // Background color passed in
         borderRadius: BorderRadius.circular(20), // More rounded
@@ -1241,7 +1241,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 6),
+              const SizedBox(height: 6),
               Text(
                 title,
                 style: TextStyle(
@@ -1261,7 +1261,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       Color backgroundColor, Color iconColor, bool isDarkMode, int current, int goal) {
     return Container(
       height: 140, // Fixed height to match other stat card
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(20),
@@ -1274,7 +1274,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Row(
             children: [
               Icon(icon, color: iconColor, size: 28),
-              Spacer(),
+              const Spacer(),
               Icon(Icons.edit, color: Colors.grey[isDarkMode ? 400 : 600], size: 18),
             ],
           ),
@@ -1290,7 +1290,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 6),
+              const SizedBox(height: 6),
               Text(
                 title,
                 style: TextStyle(
@@ -1324,9 +1324,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Loading $title workouts...'),
-                duration: Duration(milliseconds: 1500),
+                duration: const Duration(milliseconds: 1500),
                 behavior: SnackBarBehavior.floating,
-                margin: EdgeInsets.all(16.0),
+                margin: const EdgeInsets.all(16.0),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -1346,7 +1346,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.center, // Center content vertically
               children: [
                 Container(
-                  padding: EdgeInsets.all(12), // Reduced padding inside icon container
+                  padding: const EdgeInsets.all(12), // Reduced padding inside icon container
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.15), // Category specific color with opacity
                     borderRadius: BorderRadius.circular(12), // Rounded icon background
@@ -1357,7 +1357,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     size: 28, // Reduced icon size
                   ),
                 ),
-                SizedBox(height: 12), // Reduced spacing
+                const SizedBox(height: 12), // Reduced spacing
                 Flexible( // Added to prevent overflow
                   child: Text(
                     title,

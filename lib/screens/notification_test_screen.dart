@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
 
 class NotificationTestScreen extends StatefulWidget {
+  const NotificationTestScreen({super.key});
+
   @override
   _NotificationTestScreenState createState() => _NotificationTestScreenState();
 }
 
 class _NotificationTestScreenState extends State<NotificationTestScreen> {
   final NotificationService _notificationService = NotificationService();
-  TimeOfDay _selectedTime = TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _selectedTime = const TimeOfDay(hour: 9, minute: 0);
 
   @override
   void initState() {
@@ -78,7 +80,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
               Icons.fitness_center,
               Colors.orange,
               () {
-                final scheduledTime = DateTime.now().add(Duration(seconds: 5));
+                final scheduledTime = DateTime.now().add(const Duration(seconds: 5));
                 _notificationService.scheduleWorkoutReminder(
                   id: 100,
                   title: 'Workout Time! 💪',
@@ -87,7 +89,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
                   payload: 'workout_reminder',
                 );
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  const SnackBar(
                     content: Text('Workout reminder scheduled for 5 seconds!'),
                     backgroundColor: Colors.orange,
                   ),
@@ -119,7 +121,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
                           color: Colors.purple.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.schedule,
                           color: Colors.purple,
                           size: 24,
@@ -150,13 +152,13 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: _selectTime,
-                          icon: Icon(Icons.access_time),
+                          icon: const Icon(Icons.access_time),
                           label: Text(
                             'Time: ${_selectedTime.format(context)}',
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.purple,
-                            side: BorderSide(color: Colors.purple),
+                            side: const BorderSide(color: Colors.purple),
                           ),
                         ),
                       ),
@@ -180,7 +182,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
                           backgroundColor: Colors.purple,
                           foregroundColor: Colors.white,
                         ),
-                        child: Text('Set'),
+                        child: const Text('Set'),
                       ),
                     ],
                   ),
@@ -199,7 +201,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
               () {
                 _notificationService.scheduleMotivationalQuote();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  const SnackBar(
                     content: Text('Daily motivation scheduled for 9:00 AM!'),
                     backgroundColor: Colors.green,
                   ),
@@ -219,7 +221,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
                       showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: Text('Pending Notifications'),
+                          title: const Text('Pending Notifications'),
                           content: Text(
                             pending.isEmpty 
                               ? 'No pending notifications'
@@ -228,14 +230,14 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: Text('OK'),
+                              child: const Text('OK'),
                             ),
                           ],
                         ),
                       );
                     },
-                    icon: Icon(Icons.list),
-                    label: Text('View Pending'),
+                    icon: const Icon(Icons.list),
+                    label: const Text('View Pending'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: theme.primaryColor,
                       side: BorderSide(color: theme.primaryColor),
@@ -248,14 +250,14 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
                     onPressed: () {
                       _notificationService.cancelAllNotifications();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                        const SnackBar(
                           content: Text('All notifications cancelled!'),
                           backgroundColor: Colors.red,
                         ),
                       );
                     },
-                    icon: Icon(Icons.clear_all),
-                    label: Text('Cancel All'),
+                    icon: const Icon(Icons.clear_all),
+                    label: const Text('Cancel All'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,

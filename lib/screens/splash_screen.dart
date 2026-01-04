@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../helpers/session_manager.dart';
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -118,7 +120,7 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: isDarkMode 
           ? const Color(0xFF121212) // Dark theme background (matches neonDarkTheme)
           : Colors.white, // Light theme background (matches neonLightTheme)
-      body: Container(
+      body: SizedBox(
         width: double.infinity,
         height: double.infinity,
         child: Center(

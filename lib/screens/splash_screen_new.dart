@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../helpers/session_manager.dart';
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -46,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen>
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _slideController,
-        curve: Interval(0.3, 1.0, curve: Curves.easeIn),
+        curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
       ),
     );
 
@@ -203,7 +205,7 @@ class _SplashScreenState extends State<SplashScreen>
                 Colors.blue,
                 Colors.purple.withOpacity(0.8),
               ],
-              stops: [0.0, 0.5, 1.0],
+              stops: const [0.0, 0.5, 1.0],
             ).createShader(bounds),
             child: Text(
               'FitTrack',

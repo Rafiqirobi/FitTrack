@@ -12,7 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 // For example, if your app's package name is 'fittrack', use:
 // import 'package:fittrack/main.dart';
 // Or, if main.dart is in the lib folder, you can use a relative import:
-import '../lib/main.dart';
+import 'package:FitTrack/main.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {

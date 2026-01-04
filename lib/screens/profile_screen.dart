@@ -9,7 +9,7 @@ import 'notification_settings_screen.dart';
 class ProfileScreen extends StatefulWidget {
   final VoidCallback? onToggleTheme;
 
-  const ProfileScreen({Key? key, this.onToggleTheme}) : super(key: key);
+  const ProfileScreen({super.key, this.onToggleTheme});
 
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
@@ -57,7 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// subcollection for the current user in Firestore. Shows a success or
   /// failure message upon completion. This action is irreversible.
 
-/*******  7763298c-3272-454d-8775-88ff2ae2088d  *******/
+/// *****  7763298c-3272-454d-8775-88ff2ae2088d  ******
   Future<void> _clearWorkoutHistory() async {
     showDialog(
       context: context,
@@ -67,8 +67,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
             children: [
-              Icon(Icons.delete_sweep_outlined, color: Colors.red),
-              SizedBox(width: 10),
+              const Icon(Icons.delete_sweep_outlined, color: Colors.red),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Clear Workout History',
@@ -118,7 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('🗑️ Workout history cleared successfully'),
+                        content: const Text('🗑️ Workout history cleared successfully'),
                         backgroundColor: Colors.green,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -128,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('❌ Failed to clear workout history'),
+                      content: const Text('❌ Failed to clear workout history'),
                       backgroundColor: Colors.red,
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -151,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// either pressing the 'Cancel' button or saving the changes.
 
 /*******  b62bcae0-00c2-48f6-8906-b95a769492ce  *******/
-              child: Text('Clear History'),
+              child: const Text('Clear History'),
             ),
           ],
         );
@@ -174,7 +174,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: Row(
             children: [
               Icon(Icons.edit_outlined, color: Theme.of(context).primaryColor),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Text(
                 'Edit Profile',
                 style: TextStyle(
@@ -213,7 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 TextField(
                   controller: emailController,
                   style: TextStyle(
@@ -239,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 TextField(
                   controller: passwordController,
                   obscureText: true,
@@ -291,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: Text('Save'),
+              child: const Text('Save'),
             ),
           ],
         );
@@ -325,7 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await _loadUserData();
         
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Profile updated successfully'),
             backgroundColor: Colors.green,
           ),
@@ -380,7 +380,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   // Profile Header
                   Container(
-                    padding: EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(20),
@@ -388,7 +388,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         BoxShadow(
                           color: Colors.grey.withOpacity(0.1),
                           blurRadius: 10,
-                          offset: Offset(0, 5),
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
@@ -396,7 +396,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         // Avatar
                         Container(
-                          padding: EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
@@ -414,7 +414,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         
                         // Name
                         Text(
@@ -425,7 +425,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         
                         // Email
                         Text(
@@ -439,7 +439,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
 
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
                   // Profile Options
                   _buildSection('Settings', [
@@ -454,7 +454,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     }, context),
                   ], context),
 
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
                   _buildSection('Data Management', [
                     _buildTile(Icons.delete_sweep_outlined, 'Clear Workout History', _clearWorkoutHistory, context),
@@ -468,10 +468,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     }, context),
                   ], context),
 
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
                   // Logout Button
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton.icon(
@@ -483,8 +483,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         elevation: 0,
                       ),
-                      icon: Icon(Icons.logout),
-                      label: Text(
+                      icon: const Icon(Icons.logout),
+                      label: const Text(
                         'Logout',
                         style: TextStyle(
                           fontSize: 16,
@@ -499,12 +499,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              title: Text('Logout'),
-                              content: Text('Are you sure you want to logout?'),
+                              title: const Text('Logout'),
+                              content: const Text('Are you sure you want to logout?'),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(context),
-                                  child: Text('Cancel'),
+                                  child: const Text('Cancel'),
                                 ),
                                 TextButton(
                                   onPressed: () async {
@@ -532,7 +532,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       (_) => false,
                                     );
                                   },
-                                  child: Text(
+                                  child: const Text(
 
                                     'Logout',
                                     style: TextStyle(color: Colors.red),
@@ -578,7 +578,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -597,7 +597,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
@@ -617,11 +617,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -632,7 +632,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   size: 20,
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   label,

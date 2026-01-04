@@ -53,7 +53,7 @@ class AnimatedBottomBarItem extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               child: Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.w600,
                 ),

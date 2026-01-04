@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:FitTrack/services/firestore_service.dart';
 
 class WorkoutDetailScreen extends StatefulWidget {
+  const WorkoutDetailScreen({super.key});
+
   @override
   _WorkoutDetailScreenState createState() => _WorkoutDetailScreenState();
 }
@@ -86,9 +88,9 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildInput('Duration (sec)', durationController, theme),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildInput('Sets', setsController, theme),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildInput('Reps', repsController, theme),
             ],
           ),
@@ -119,7 +121,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: Text('Save'),
+              child: const Text('Save'),
             ),
           ],
         );
@@ -153,6 +155,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   }
 
   @override
+
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
@@ -208,7 +211,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             return Center(
               child: Text(
                 'Error loading workout: ${snapshot.error}',
-                style: TextStyle(color: Colors.red),
+                style: const TextStyle(color: Colors.red),
               ),
             );
           }
@@ -228,7 +231,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           return Container(
             decoration: BoxDecoration(
               gradient: isDarkMode 
-                ? LinearGradient(
+                ? const LinearGradient(
                     colors: [Color(0xFF0D0D0D), Color(0xFF1A1A1A)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -236,14 +239,14 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 : null,
             ),
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Main Workout Image
                   _buildWorkoutImage(mainImageUrl, data, primaryColor, cardColor, backgroundColor),
                   
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   
                   // Workout Title
                   Text(
@@ -256,20 +259,20 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                     textAlign: TextAlign.center,
                   ),
                   
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   
                   // Workout Stats
                   Row(
                     children: [
                       _buildStat('Calories', '${data['calories'] ?? 'N/A'} kcal', primaryColor, cardColor, textColor),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       _buildStat('Focus', data['category'] ?? 'Full Body', primaryColor, cardColor, textColor),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       _buildStat('Rest', '${data['restTime'] ?? 'N/A'}s', primaryColor, cardColor, textColor),
                     ],
                   ),
                   
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
                   
                   // Steps Section
                   Align(
@@ -284,7 +287,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                     ),
                   ),
                   
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   
                   // Steps List
                   ...List.generate(
@@ -292,7 +295,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                     (i) => _buildStepCard(workoutId, i, steps[i], steps, primaryColor, cardColor, textColor),
                   ),
                   
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
                   
                   // Start Workout Button
                   ElevatedButton(
@@ -300,13 +303,13 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 18),
+                      padding: const EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                       elevation: 4,
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.play_arrow, size: 24),
@@ -339,7 +342,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
             blurRadius: 10,
-            offset: Offset(0, 5),
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -376,7 +379,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             ),
             child: IconButton(
               onPressed: () => Navigator.pushNamed(context, '/workoutTimer', arguments: data),
-              icon: Icon(
+              icon: const Icon(
                 Icons.play_arrow,
                 color: Colors.white,
                 size: 40,
@@ -398,15 +401,15 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.fitness_center,
               color: Colors.white54,
               size: 60,
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
               message,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 16,
               ),
@@ -420,7 +423,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   Widget _buildStat(String label, String value, Color primaryColor, Color cardColor, Color textColor) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(16),
@@ -440,7 +443,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 6),
+            const SizedBox(height: 6),
             Text(
               value,
               style: TextStyle(
@@ -468,7 +471,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     }
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -478,7 +481,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         ),
       ),
       child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           width: 40,
           height: 40,
@@ -508,7 +511,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         ),
         subtitle: subtitle.isNotEmpty 
             ? Padding(
-                padding: EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   subtitle,
                   style: TextStyle(

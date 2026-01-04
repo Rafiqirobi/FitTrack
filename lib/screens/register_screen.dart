@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
@@ -35,7 +37,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       if (password != confirmPassword) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Passwords do not match')),
+          const SnackBar(content: Text('Passwords do not match')),
         );
         return;
       }
@@ -45,7 +47,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         User? user = await AuthService().registerWithEmail(email.trim(), password.trim(), username.trim());
         if (user != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Registration successful')),
+            const SnackBar(content: Text('Registration successful')),
           );
           Navigator.pushReplacementNamed(context, '/login');
         }
@@ -76,12 +78,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         IconButton(
                           onPressed: () => Navigator.pop(context),
-                          icon: Icon(Icons.arrow_back_ios),
+                          icon: const Icon(Icons.arrow_back_ios),
                           color: Theme.of(context).primaryColor,
                         ),
                       ],
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     
                     // Logo/Title
                     Text(
@@ -93,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         letterSpacing: 1.5,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       'Join FitTrack today!',
                       style: TextStyle(
@@ -103,7 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 48),
+                    const SizedBox(height: 48),
                     
                     // Form
                     Form(
@@ -115,7 +117,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             decoration: InputDecoration(
                               labelText: 'Username',
                               hintText: 'Enter your username',
-                              prefixIcon: Icon(Icons.person_outline),
+                              prefixIcon: const Icon(Icons.person_outline),
                               filled: true,
                               fillColor: Theme.of(context).cardColor,
                               border: OutlineInputBorder(
@@ -134,14 +136,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             onChanged: (val) => username = val,
                             validator: _validateUsername,
                           ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           
                           // Email Field
                           TextFormField(
                             decoration: InputDecoration(
                               labelText: 'Email',
                               hintText: 'Enter your email',
-                              prefixIcon: Icon(Icons.email_outlined),
+                              prefixIcon: const Icon(Icons.email_outlined),
                               filled: true,
                               fillColor: Theme.of(context).cardColor,
                               border: OutlineInputBorder(
@@ -161,14 +163,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             onChanged: (val) => email = val,
                             validator: _validateEmail,
                           ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           
                           // Password Field
                           TextFormField(
                             decoration: InputDecoration(
                               labelText: 'Password',
                               hintText: 'Enter your password',
-                              prefixIcon: Icon(Icons.lock_outline),
+                              prefixIcon: const Icon(Icons.lock_outline),
                               filled: true,
                               fillColor: Theme.of(context).cardColor,
                               border: OutlineInputBorder(
@@ -188,14 +190,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             onChanged: (val) => password = val,
                             validator: _validatePassword,
                           ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           
                           // Confirm Password Field
                           TextFormField(
                             decoration: InputDecoration(
                               labelText: 'Confirm Password',
                               hintText: 'Confirm your password',
-                              prefixIcon: Icon(Icons.lock_outline),
+                              prefixIcon: const Icon(Icons.lock_outline),
                               filled: true,
                               fillColor: Theme.of(context).cardColor,
                               border: OutlineInputBorder(
@@ -215,7 +217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             onChanged: (val) => confirmPassword = val,
                             validator: (val) => val != password ? 'Passwords do not match' : null,
                           ),
-                          SizedBox(height: 32),
+                          const SizedBox(height: 32),
                           
                           // Register Button
                           SizedBox(
@@ -231,7 +233,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                               ),
                               onPressed: _register,
-                              child: Text(
+                              child: const Text(
                                 'Create Account',
                                 style: TextStyle(
                                   fontSize: 16,
@@ -240,7 +242,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                           ),
-                          SizedBox(height: 24),
+                          const SizedBox(height: 24),
                           
                           // Login Link
                           TextButton(

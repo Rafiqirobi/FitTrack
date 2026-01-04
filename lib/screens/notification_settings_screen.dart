@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/notification_service.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
+  const NotificationSettingsScreen({super.key});
+
   @override
   _NotificationSettingsScreenState createState() => _NotificationSettingsScreenState();
 }
@@ -12,7 +14,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   
   bool _workoutReminders = true;
   bool _motivationalQuotes = true;
-  TimeOfDay _reminderTime = TimeOfDay(hour: 18, minute: 0); // 6 PM default
+  TimeOfDay _reminderTime = const TimeOfDay(hour: 18, minute: 0); // 6 PM default
 
   @override
   void initState() {
@@ -64,7 +66,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Notification settings saved!'),
+        content: const Text('Notification settings saved!'),
         backgroundColor: Theme.of(context).primaryColor,
       ),
     );
@@ -116,7 +118,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       body: Container(
         decoration: BoxDecoration(
           gradient: isDarkMode 
-            ? LinearGradient(
+            ? const LinearGradient(
                 colors: [Color(0xFF0D0D0D), Color(0xFF1A1A1A)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -245,7 +247,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     color: Colors.purple.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.psychology,
                     color: Colors.purple,
                   ),
@@ -271,7 +273,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.notifications_active,
                     color: Colors.blue,
                   ),
@@ -289,7 +291,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
                   ),
                 ),
-                trailing: Icon(
+                trailing: const Icon(
                   Icons.arrow_forward_ios,
                   color: Colors.blue,
                   size: 16,
@@ -300,7 +302,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     body: 'Your notifications are set up correctly.',
                   );
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    const SnackBar(
                       content: Text('Test notification sent!'),
                       backgroundColor: Colors.blue,
                     ),

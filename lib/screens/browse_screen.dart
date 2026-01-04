@@ -5,7 +5,7 @@ import '../models/workout_model.dart'; // Make sure this path is correct
 class BrowseScreen extends StatefulWidget {
   final VoidCallback? onToggleTheme;
 
-  const BrowseScreen({Key? key, this.onToggleTheme}) : super(key: key);
+  const BrowseScreen({super.key, this.onToggleTheme});
 
   @override
   _BrowseScreenState createState() => _BrowseScreenState();
@@ -13,7 +13,7 @@ class BrowseScreen extends StatefulWidget {
 
 
 class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMixin {
-  List<Workout> _workouts = [];
+  final List<Workout> _workouts = [];
   List<Workout> _allWorkouts = []; // Store all workouts for search
   List<Workout> _filteredWorkouts = []; // Store filtered workouts
   bool _loading = true;
@@ -223,7 +223,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
       print('Error fetching workouts: $e');
       // Consider showing a user-friendly error message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load workouts. Please try again.'),
+        SnackBar(content: const Text('Failed to load workouts. Please try again.'),
         backgroundColor: Colors.red[400]),
       );
     } finally {
@@ -348,7 +348,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
                 child: ListView.builder(
                   controller: _scrollController,
                   scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                   itemCount: categoryData.length,
                   itemBuilder: (context, index) {
                     final categoryKey = categoryData.keys.elementAt(index);
@@ -366,10 +366,10 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
                       },
                       child: AnimatedContainer(
                         // Smooth animation for color, border, and shadow changes
-                        duration: Duration(milliseconds: 300),
+                        duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
                         width: 100,
-                        margin: EdgeInsets.only(right: 12),
+                        margin: const EdgeInsets.only(right: 12),
                         decoration: BoxDecoration(
                           color: isSelected ? primaryColor : cardColor,
                           borderRadius: BorderRadius.circular(16),
@@ -381,14 +381,14 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
                             BoxShadow(
                               color: primaryColor.withOpacity(0.4), // Slightly more intense shadow for selection
                               blurRadius: 12,
-                              offset: Offset(0, 6),
+                              offset: const Offset(0, 6),
                             ),
                           ] : [
                             // Subtle shadow for unselected cards
                             BoxShadow(
                               color: Colors.black.withOpacity(isDark ? 0.05 : 0.08),
                               blurRadius: 6,
-                              offset: Offset(0, 3),
+                              offset: const Offset(0, 3),
                             ),
                           ],
                         ),
@@ -400,7 +400,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
                               color: isSelected ? (isDark ? Colors.black : Colors.white) : primaryColor,
                               size: 32,
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               displayCategoryName,
                               style: TextStyle(
@@ -425,7 +425,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
             child: SlideTransition(
               position: _headerTextSlideAnimation,
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Text(
                   _selectedCategory == 'All' ? 'All Workouts' : '${_selectedCategory[0].toUpperCase()}${_selectedCategory.substring(1)} Workouts',
                   style: TextStyle(
@@ -452,7 +452,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
                   : AnimatedList(
                       key: _listKey,
                       initialItemCount: _filteredWorkouts.length,
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       itemBuilder: (context, index, animation) {
                         final workout = _filteredWorkouts[index];
                         return _buildWorkoutCard(workout, animation, context);
@@ -495,7 +495,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
   Widget _buildWorkoutCard(Workout workout, Animation<double> animation, BuildContext context) {
     return SlideTransition(
       position: Tween<Offset>(
-        begin: Offset(0, 0.2), // Items slide up from slightly below
+        begin: const Offset(0, 0.2), // Items slide up from slightly below
         end: Offset.zero,
       ).animate(CurvedAnimation(
         parent: animation,
@@ -521,7 +521,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
-      margin: EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 16),
       elevation: 4, // Retained a small elevation for depth
       shadowColor: Colors.black.withOpacity(0.1), // Subtle shadow
       child: InkWell(
@@ -550,7 +550,7 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
                   size: 30,
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,18 +563,18 @@ class _BrowseScreenState extends State<BrowseScreen> with TickerProviderStateMix
                         fontSize: 18,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Icon(Icons.timer_outlined, size: 16, color: Colors.grey[600]),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text(
                           '${workout.duration} min',
                           style: TextStyle(color: Colors.grey[600], fontSize: 14),
                         ),
-                        SizedBox(width: 16),
+                        const SizedBox(width: 16),
                         Icon(Icons.local_fire_department_outlined, size: 16, color: Colors.grey[600]),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text(
                           '${workout.calories} kcal',
                           style: TextStyle(color: Colors.grey[600], fontSize: 14),

@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -13,7 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String email = '', password = '';
   bool _isLoading = false;
 
-  // ✅ Email format validation
+  //  Email format validation
   String? _validateEmail(String? val) {
     if (val == null || val.isEmpty) return 'Enter email';
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w]{2,4}$');
@@ -36,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
           Future.microtask(() {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Login successful!')),
+              const SnackBar(content: Text('Login successful!')),
             );
           });
         } else {
@@ -74,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         letterSpacing: 2.0,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       'Welcome Back!',
                       style: TextStyle(
@@ -84,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 48),
+                    const SizedBox(height: 48),
                     
                     // Form
                     Form(
@@ -96,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: InputDecoration(
                               labelText: 'Email',
                               hintText: 'Enter your email',
-                              prefixIcon: Icon(Icons.email_outlined),
+                              prefixIcon: const Icon(Icons.email_outlined),
                               filled: true,
                               fillColor: Theme.of(context).cardColor,
                               border: OutlineInputBorder(
@@ -116,14 +118,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             onChanged: (val) => email = val,
                             validator: _validateEmail,
                           ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           
                           // Password Field
                           TextFormField(
                             decoration: InputDecoration(
                               labelText: 'Password',
                               hintText: 'Enter your password',
-                              prefixIcon: Icon(Icons.lock_outline),
+                              prefixIcon: const Icon(Icons.lock_outline),
                               filled: true,
                               fillColor: Theme.of(context).cardColor,
                               border: OutlineInputBorder(
@@ -143,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             onChanged: (val) => password = val,
                             validator: (val) => val != null && val.length < 6 ? 'Password must be at least 6 characters' : null,
                           ),
-                          SizedBox(height: 32),
+                          const SizedBox(height: 32),
                           
                           // Login Button
                           SizedBox(
@@ -159,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                               onPressed: _login,
-                              child: Text(
+                              child: const Text(
                                 'Sign In',
                                 style: TextStyle(
                                   fontSize: 16,
@@ -168,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-                          SizedBox(height: 24),
+                          const SizedBox(height: 24),
                           
                           // Register Link
                           TextButton(

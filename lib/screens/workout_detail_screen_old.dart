@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:FitTrack/services/firestore_service.dart';
 
 class WorkoutDetailScreen extends StatefulWidget {
+  const WorkoutDetailScreen({super.key});
+
   @override
   _WorkoutDetailScreenState createState() => _WorkoutDetailScreenState();
 }
@@ -75,7 +77,7 @@ Future<void> _toggleFavorite(String workoutId) async {
       builder: (context) {
         return AlertDialog(
           backgroundColor: cardBg,
-          title: Text('Edit Step', style: TextStyle(color: neonGreen)),
+          title: const Text('Edit Step', style: TextStyle(color: neonGreen)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -87,7 +89,7 @@ Future<void> _toggleFavorite(String workoutId) async {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Colors.white70)),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
             ),
             TextButton(
               onPressed: () async {
@@ -103,7 +105,7 @@ Future<void> _toggleFavorite(String workoutId) async {
                 Navigator.pop(context);
                 setState(() {});
               },
-              child: Text('Save', style: TextStyle(color: neonGreen)),
+              child: const Text('Save', style: TextStyle(color: neonGreen)),
             ),
           ],
         );
@@ -115,16 +117,16 @@ Future<void> _toggleFavorite(String workoutId) async {
     return TextField(
       controller: controller,
       keyboardType: TextInputType.number,
-      style: TextStyle(color: Colors.white),
+      style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white70),
+        labelStyle: const TextStyle(color: Colors.white70),
         enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white24),
+          borderSide: const BorderSide(color: Colors.white24),
           borderRadius: BorderRadius.circular(8),
         ),
         focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: neonGreen),
+          borderSide: const BorderSide(color: neonGreen),
           borderRadius: BorderRadius.circular(8),
         ),
       ),
@@ -138,16 +140,16 @@ Future<void> _toggleFavorite(String workoutId) async {
     return Scaffold(
       backgroundColor: darkBg,
       appBar: AppBar(
-        title: Text('WORKOUT DETAILS'),
+        title: const Text('WORKOUT DETAILS'),
         backgroundColor: Colors.transparent,
         centerTitle: true,
         elevation: 0,
-        iconTheme: IconThemeData(color: neonGreen),
-        titleTextStyle: TextStyle(color: neonGreen, fontSize: 18, fontWeight: FontWeight.w700),
+        iconTheme: const IconThemeData(color: neonGreen),
+        titleTextStyle: const TextStyle(color: neonGreen, fontSize: 18, fontWeight: FontWeight.w700),
         actions: [
           IconButton(
             icon: _isLoadingFavoriteStatus 
-                ? SizedBox(
+                ? const SizedBox(
                     width: 24, 
                     height: 24, 
                     child: CircularProgressIndicator(
@@ -164,13 +166,13 @@ Future<void> _toggleFavorite(String workoutId) async {
         future: FirebaseFirestore.instance.collection('workouts').doc(workoutId).get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(color: neonGreen));
+            return const Center(child: CircularProgressIndicator(color: neonGreen));
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error loading workout: ${snapshot.error}', style: TextStyle(color: Colors.red)));
+            return Center(child: Text('Error loading workout: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
           }
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return Center(child: Text('Workout not found.', style: TextStyle(color: Colors.white70)));
+            return const Center(child: Text('Workout not found.', style: TextStyle(color: Colors.white70)));
           }
 
           final data = snapshot.data!.data() as Map<String, dynamic>;
@@ -178,7 +180,7 @@ Future<void> _toggleFavorite(String workoutId) async {
           final String? mainImageUrl = data['imageUrl']; // Get the main image URL
 
           return SingleChildScrollView(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -199,7 +201,7 @@ Future<void> _toggleFavorite(String workoutId) async {
                               height: 220,
                               width: double.infinity,
                               color: cardBg,
-                              child: Center(
+                              child: const Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -217,7 +219,7 @@ Future<void> _toggleFavorite(String workoutId) async {
                       FloatingActionButton(
                         onPressed: () => Navigator.pushNamed(context, '/workoutTimer', arguments: data),
                         backgroundColor: neonGreen,
-                        child: Icon(Icons.play_arrow, color: darkBg),
+                        child: const Icon(Icons.play_arrow, color: darkBg),
                       )
                     ],
                   )
@@ -229,7 +231,7 @@ Future<void> _toggleFavorite(String workoutId) async {
                       color: cardBg.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Center(
+                    child: const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -241,13 +243,13 @@ Future<void> _toggleFavorite(String workoutId) async {
                     ),
                   ),
 
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Text(
                   data['name'] ?? 'Workout',
-                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -256,23 +258,23 @@ Future<void> _toggleFavorite(String workoutId) async {
                     _buildStat('Rest', '${data['restTime'] ?? 'N/A'}s'), // Using restTime here
                   ],
                 ),
-                SizedBox(height: 30),
-                Align(
+                const SizedBox(height: 30),
+                const Align(
                   alignment: Alignment.centerLeft,
                   child: Text('STEP-BY-STEP GUIDE', style: TextStyle(color: neonGreen, fontWeight: FontWeight.bold)),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 ...List.generate(steps.length, (i) => _buildStepCard(workoutId, i, steps[i], steps)),
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
                 ElevatedButton(
                   onPressed: () => Navigator.pushNamed(context, '/workoutTimer', arguments: data),
-                  child: Text('START WORKOUT NOW'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: neonGreen,
                     foregroundColor: darkBg,
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
+                  child: Text('START WORKOUT NOW'),
                 )
               ],
             ),
@@ -285,15 +287,15 @@ Future<void> _toggleFavorite(String workoutId) async {
   Widget _buildStat(String label, String value) {
     return Expanded(
       child: Container(
-        margin: EdgeInsets.only(right: 6),
-        padding: EdgeInsets.all(12),
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(color: Colors.white70, fontSize: 12)),
-            SizedBox(height: 4),
-            Text(value, style: TextStyle(color: neonGreen, fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            const SizedBox(height: 4),
+            Text(value, style: const TextStyle(color: neonGreen, fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -313,7 +315,7 @@ Future<void> _toggleFavorite(String workoutId) async {
     }
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(12),
@@ -322,12 +324,12 @@ Future<void> _toggleFavorite(String workoutId) async {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: neonGreen.withOpacity(0.1),
-          child: Text('${index + 1}', style: TextStyle(color: neonGreen)),
+          child: Text('${index + 1}', style: const TextStyle(color: neonGreen)),
         ),
-        title: Text(step['text'] ?? 'Step', style: TextStyle(color: Colors.white)), // Using 'text' for step description
-        subtitle: subtitle.isNotEmpty ? Text(subtitle, style: TextStyle(color: accentColor)) : null,
+        title: Text(step['text'] ?? 'Step', style: const TextStyle(color: Colors.white)), // Using 'text' for step description
+        subtitle: subtitle.isNotEmpty ? Text(subtitle, style: const TextStyle(color: accentColor)) : null,
         trailing: IconButton(
-          icon: Icon(Icons.edit, color: neonGreen),
+          icon: const Icon(Icons.edit, color: neonGreen),
           onPressed: () => _editStepDialog(workoutId, index, step, steps),
         ),
       ),

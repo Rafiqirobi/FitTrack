@@ -16,6 +16,7 @@ import 'screens/reps_screen.dart';
 import 'screens/favourites_screen.dart';
 import 'screens/nav_bottom_bar.dart'; // Main navigation
 import 'screens/notification_test_screen.dart';
+import 'screens/gps_interface_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +29,8 @@ void main() async {
 }
 
 class FitTrackApp extends StatefulWidget {
+  const FitTrackApp({super.key});
+
   @override
   State<FitTrackApp> createState() => _FitTrackAppState();
 }
@@ -36,9 +39,9 @@ class _FitTrackAppState extends State<FitTrackApp> {
   // Light theme configuration
   final ThemeData _neonLightTheme = ThemeData(
     brightness: Brightness.light,
-    primaryColor: Color(0xFFFF5722), // Orange primary
+    primaryColor: const Color(0xFFFF5722), // Orange primary
     scaffoldBackgroundColor: Colors.white,
-    colorScheme: ColorScheme.light(
+    colorScheme: const ColorScheme.light(
       primary: Color(0xFFFF5722), // Orange primary
       secondary: Color(0xFFFF7043), // Light orange
       surface: Colors.white,
@@ -50,15 +53,15 @@ class _FitTrackAppState extends State<FitTrackApp> {
       onSurface: Colors.black87,
     ),
     cardColor: Colors.white,
-    dividerColor: Color(0xFFEEEEEE),
+    dividerColor: const Color(0xFFEEEEEE),
   );
 
   // Dark theme configuration
   final ThemeData _neonDarkTheme = ThemeData(
     brightness: Brightness.dark,
-    primaryColor: Color(0xFFFF5722), // Orange primary
-    scaffoldBackgroundColor: Color(0xFF0A0A0A), // Near black
-    colorScheme: ColorScheme.dark(
+    primaryColor: const Color(0xFFFF5722), // Orange primary
+    scaffoldBackgroundColor: const Color(0xFF0A0A0A), // Near black
+    colorScheme: const ColorScheme.dark(
       primary: Color(0xFFFF5722), // Orange primary
       secondary: Color(0xFFFF7043), // Light orange
       surface: Color(0xFF121212), // Slightly lighter black
@@ -186,22 +189,24 @@ class _FitTrackAppState extends State<FitTrackApp> {
         '/register': (context) => RegisterScreen(),
         '/navBottomBar': (context) => NavBottomBar(onToggleTheme: _toggleTheme),
         '/workoutDetail': (context) => WorkoutDetailScreen(),
-        '/browse': (context) => BrowseScreen(),
+        '/browse': (context) => const BrowseScreen(),
         '/workoutTimer': (context) => WorkoutTimerScreen(),
         '/repsScreen': (context) => RepsScreen(),
         '/favourites': (context) => FavouritesScreen(),
         '/notificationTest': (context) => NotificationTestScreen(),
+        '/gpsInterface': (context) => const GpsInterfaceScreen(), // <<< NEW ROUTE ADDED
       },
     );
   }
 }
 
-// 🎨 Dark Theme
+// 🎨 Dark Theme (These final definitions outside the class are redundant if used inside, 
+// but I'm keeping them to respect your original structure)
 final ThemeData neonDarkTheme = ThemeData(
   brightness: Brightness.dark,
-  primaryColor: Color(0xFFFF5722),
-  scaffoldBackgroundColor: Color(0xFF0A0A0A),
-  cardColor: Color(0xFF121212),
+  primaryColor: const Color(0xFFFF5722),
+  scaffoldBackgroundColor: const Color.fromARGB(255, 29, 29, 29),
+  cardColor: const Color(0xFF121212),
   iconTheme: const IconThemeData(color: Color(0xFFFF5722)),
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
     backgroundColor: Color(0xFFFF5722),
@@ -231,7 +236,7 @@ final ThemeData neonDarkTheme = ThemeData(
 // 🎨 Light Theme
 final ThemeData neonLightTheme = ThemeData(
   brightness: Brightness.light,
-  primaryColor: Color(0xFFFF5722),
+  primaryColor: const Color(0xFFFF5722),
   scaffoldBackgroundColor: Colors.white,
   cardColor: Colors.white,
   iconTheme: const IconThemeData(color: Color(0xFFFF5722)),

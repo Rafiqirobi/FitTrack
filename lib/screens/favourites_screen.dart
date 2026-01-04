@@ -4,6 +4,8 @@ import '../models/workout_model.dart';
 import '../services/firestore_service.dart';
 
 class FavouritesScreen extends StatefulWidget {
+  const FavouritesScreen({super.key});
+
   @override
   _FavouritesScreenState createState() => _FavouritesScreenState();
 }
@@ -28,7 +30,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
 
   void _initializeAnimations() {
     _fadeController = AnimationController(
-      duration: Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -43,15 +45,15 @@ class _FavouritesScreenState extends State<FavouritesScreen>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Delete Favorite'),
+          title: const Text('Delete Favorite'),
           content: Text('Are you sure you want to remove "$workoutName" from favorites?'),
           actions: [
             TextButton(
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
               onPressed: () => Navigator.of(context).pop(false),
             ),
             TextButton(
-              child: Text(
+              child: const Text(
                 'Delete',
                 style: TextStyle(color: Colors.red),
               ),
@@ -70,7 +72,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${workout.name} removed from favorites'),
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -166,7 +168,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                         color: isDarkMode ? Colors.white : Colors.black87,
                         strokeWidth: 3,
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Text(
                         'Loading your favorite workouts...',
                         style: TextStyle(
@@ -185,7 +187,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              padding: EdgeInsets.all(24),
+                              padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
                                 color: Theme.of(context).primaryColor.withOpacity(0.1),
                                 shape: BoxShape.circle,
@@ -196,7 +198,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                 size: 64,
                               ),
                             ),
-                            SizedBox(height: 24),
+                            const SizedBox(height: 24),
                             Text(
                               'No Favorite Workouts Yet!',
                               style: TextStyle(
@@ -206,7 +208,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            SizedBox(height: 12),
+                            const SizedBox(height: 12),
                             Text(
                               'Start exploring workouts and add them to your favorites for quick access.',
                               style: TextStyle(
@@ -215,7 +217,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            SizedBox(height: 32),
+                            const SizedBox(height: 32),
                             ElevatedButton.icon(
                               onPressed: () {
                                 Navigator.pushNamed(context, '/browse');
@@ -233,7 +235,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: isDarkMode ? Colors.white : Colors.black87,
-                                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(25),
@@ -254,7 +256,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                         children: [
                           // Stats header
                           Container(
-                            padding: EdgeInsets.all(20),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(16),
@@ -263,7 +265,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                             child: Row(
                               children: [
                                 Container(
-                                  padding: EdgeInsets.all(12),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: isDarkMode 
                                       ? Colors.white.withOpacity(0.1)
@@ -276,7 +278,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                     size: 24,
                                   ),
                                 ),
-                                SizedBox(width: 16),
+                                const SizedBox(width: 16),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -288,7 +290,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                         color: Theme.of(context).textTheme.headlineMedium?.color,
                                       ),
                                     ),
-                                    SizedBox(height: 4),
+                                    const SizedBox(height: 4),
                                     Text(
                                       'Ready to get started!',
                                       style: TextStyle(
@@ -301,12 +303,12 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                               ],
                             ),
                           ),
-                          SizedBox(height: 24),
+                          const SizedBox(height: 24),
                           
                           // Workouts list
                           Expanded(
                             child: ListView.builder(
-                              padding: EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
                               itemCount: _allFavoriteWorkouts.length,
                               itemBuilder: (context, index) {
                                 final workout = _allFavoriteWorkouts[index];
@@ -315,12 +317,12 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                   direction: DismissDirection.endToStart,
                                   background: Container(
                                     alignment: Alignment.centerRight,
-                                    padding: EdgeInsets.symmetric(horizontal: 20),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20),
                                     decoration: BoxDecoration(
                                       color: Colors.red,
                                       borderRadius: BorderRadius.circular(16),
                                     ),
-                                    child: Icon(
+                                    child: const Icon(
                                       Icons.delete,
                                       color: Colors.white,
                                     ),
@@ -328,7 +330,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                   confirmDismiss: (_) => _confirmDelete(workout.name),
                                   onDismissed: (_) => _handleDelete(workout),
                                   child: Container(
-                                    margin: EdgeInsets.only(bottom: 12),
+                                    margin: const EdgeInsets.only(bottom: 12),
                                     decoration: BoxDecoration(
                                       color: Theme.of(context).cardColor,
                                       borderRadius: BorderRadius.circular(16),
@@ -344,7 +346,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                           child: Row(
                                             children: [
                                               Container(
-                                                padding: EdgeInsets.all(12),
+                                                padding: const EdgeInsets.all(12),
                                                 decoration: BoxDecoration(
                                                   color: isDarkMode 
                                                     ? Colors.white.withOpacity(0.1)
@@ -357,7 +359,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                                   size: 24,
                                                 ),
                                               ),
-                                              SizedBox(width: 16),
+                                              const SizedBox(width: 16),
                                               Expanded(
                                                 child: Column(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,7 +372,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                                         fontWeight: FontWeight.bold,
                                                       ),
                                                     ),
-                                                    SizedBox(height: 6),
+                                                    const SizedBox(height: 6),
                                                     Row(
                                                       children: [
                                                         Icon(
@@ -378,7 +380,7 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                                           size: 14,
                                                           color: Colors.grey[isDarkMode ? 400 : 600],
                                                         ),
-                                                        SizedBox(width: 4),
+                                                        const SizedBox(width: 4),
                                                         Text(
                                                           workout.category.toUpperCase(),
                                                           style: TextStyle(
@@ -387,13 +389,13 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                                             fontWeight: FontWeight.w500,
                                                           ),
                                                         ),
-                                                        SizedBox(width: 16),
+                                                        const SizedBox(width: 16),
                                                         Icon(
                                                           Icons.access_time,
                                                           size: 14,
                                                           color: Colors.grey[isDarkMode ? 400 : 600],
                                                         ),
-                                                        SizedBox(width: 4),
+                                                        const SizedBox(width: 4),
                                                         Text(
                                                           '${workout.duration} min',
                                                           style: TextStyle(
@@ -403,9 +405,9 @@ class _FavouritesScreenState extends State<FavouritesScreen>
                                                         ),
                                                       ],
                                                     ),
-                                                    SizedBox(height: 4),
+                                                    const SizedBox(height: 4),
                                                     Container(
-                                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                       decoration: BoxDecoration(
                                                         color: isDarkMode 
                                                           ? Colors.white.withOpacity(0.1)

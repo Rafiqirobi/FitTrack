@@ -54,7 +54,7 @@ class GoalService {
       print('Goals saved successfully: $goals');
     } catch (e) {
       print('Error setting user goals: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -74,7 +74,7 @@ class GoalService {
       print('Goal updated: $goalType = $value');
     } catch (e) {
       print('Error updating goal: $e');
-      throw e;
+      rethrow;
     }
   }
 

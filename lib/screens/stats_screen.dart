@@ -38,7 +38,7 @@ void main() async {
 class StatsScreen extends StatefulWidget {
   final VoidCallback? onToggleTheme;
 
-  const StatsScreen({Key? key, this.onToggleTheme}) : super(key: key);
+  const StatsScreen({super.key, this.onToggleTheme});
 
   @override
   _StatsScreenState createState() => _StatsScreenState();
@@ -534,7 +534,7 @@ class _StatsScreenState extends State<StatsScreen> {
                                     const SizedBox(height: 4),
                                     Text(
                                       _currentRank!.title.toUpperCase(),
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 28,
                                         fontWeight: FontWeight.w900,
@@ -598,7 +598,7 @@ class _StatsScreenState extends State<StatsScreen> {
                                     child: LinearProgressIndicator(
                                       value: _totalWorkouts / _nextRank!.requiredWorkouts,
                                       backgroundColor: Colors.transparent,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                                     ),
                                   ),
                                 ),
@@ -612,11 +612,11 @@ class _StatsScreenState extends State<StatsScreen> {
                                 color: Colors.white.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Row(
+                              child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.military_tech, color: Colors.white, size: 20),
-                                  const SizedBox(width: 8),
+                                  SizedBox(width: 8),
                                   Text(
                                     'MAXIMUM RANK ACHIEVED!',
                                     style: TextStyle(
@@ -663,7 +663,7 @@ class _StatsScreenState extends State<StatsScreen> {
                           context,
                           title: 'Calories Burned',
                           // Formats to "12.3k" if over 1000, else "123"
-                          value: '${(_caloriesBurned >= 1000 ? (_caloriesBurned / 1000).toStringAsFixed(1) + 'k' : _caloriesBurned.toString())}',
+                          value: (_caloriesBurned >= 1000 ? '${(_caloriesBurned / 1000).toStringAsFixed(1)}k' : _caloriesBurned.toString()),
                           icon: Icons.local_fire_department,
                         ),
                       ),

@@ -5,6 +5,8 @@ import 'package:FitTrack/services/firestore_service.dart';
 import 'package:FitTrack/models/completed_workout_model.dart';
 
 class WorkoutTimerScreen extends StatefulWidget {
+  const WorkoutTimerScreen({super.key});
+
   @override
   _WorkoutTimerScreenState createState() => _WorkoutTimerScreenState();
 }
@@ -237,8 +239,8 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_outlined, color: Colors.orange),
-            SizedBox(width: 10),
+            const Icon(Icons.warning_amber_outlined, color: Colors.orange),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Exit Workout?',
@@ -269,7 +271,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: Text('Exit'),
+            child: const Text('Exit'),
           ),
         ],
       ),
@@ -335,7 +337,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
       ),
       body: Center(
         child: AnimatedBuilder(
-          animation: _finishScaleAnimation ?? AlwaysStoppedAnimation(1.0),
+          animation: _finishScaleAnimation ?? const AlwaysStoppedAnimation(1.0),
           builder: (context, child) {
             return Transform.scale(
               scale: _finishScaleAnimation?.value ?? 1.0,
@@ -343,7 +345,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: EdgeInsets.all(40),
+                    padding: const EdgeInsets.all(40),
                     decoration: BoxDecoration(
                       color: primaryColor.withOpacity(0.1),
                       shape: BoxShape.circle,
@@ -354,7 +356,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                       color: primaryColor,
                     ),
                   ),
-                  SizedBox(height: 40),
+                  const SizedBox(height: 40),
                   Text(
                     'Congratulations!',
                     style: TextStyle(
@@ -363,7 +365,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                       color: textColor,
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
                     'You\'ve completed your workout!',
                     style: TextStyle(
@@ -372,16 +374,16 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 60),
+                  const SizedBox(height: 60),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 50, vertical: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                     ),
-                    child: Text(
+                    child: const Text(
                       'FINISH',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
@@ -430,13 +432,13 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                 valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                 minHeight: 8,
               ),
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
               
               // Exercise card
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: cardColor,
                     borderRadius: BorderRadius.circular(20),
@@ -454,7 +456,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       if (step['text'] != null)
                         Text(
                           step['text'],
@@ -465,7 +467,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                           ),
                           textAlign: TextAlign.center,
                         ),
-                      SizedBox(height: 30),
+                      const SizedBox(height: 30),
                       
                       // Exercise details
                       if (step['duration'] != null)
@@ -481,7 +483,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                 ),
               ),
               
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
               
               // Action buttons
               Row(
@@ -492,7 +494,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: primaryColor),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                        padding: EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: Text(
                         'SKIP',
@@ -500,7 +502,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                       ),
                     ),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Expanded(
                     flex: 2,
                     child: ElevatedButton(
@@ -509,11 +511,11 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                         backgroundColor: primaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                        padding: EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: Text(
                         isLastStep ? 'FINISH WORKOUT' : 'START',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -554,7 +556,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isDarkMode 
-                ? [Color(0xFF0D0D0D), Color(0xFF1A1A1A)]
+                ? [const Color(0xFF0D0D0D), const Color(0xFF1A1A1A)]
                 : [theme.scaffoldBackgroundColor, theme.scaffoldBackgroundColor.withOpacity(0.9)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -564,7 +566,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
             children: [
               // Progress bar
               Container(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
                     LinearProgressIndicator(
@@ -573,7 +575,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                       valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                       minHeight: 8,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       'Exercise ${currentStepIndex + 1} of ${steps.length}',
                       style: TextStyle(
@@ -588,7 +590,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
               // Timer circle
               Expanded(
                 child: Center(
-                  child: Container(
+                  child: SizedBox(
                     width: 280,
                     height: 280,
                     child: Stack(
@@ -620,9 +622,9 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
                               AnimatedBuilder(
-                                animation: _textPulseAnimation ?? AlwaysStoppedAnimation(1.0),
+                                animation: _textPulseAnimation ?? const AlwaysStoppedAnimation(1.0),
                                 builder: (context, child) {
                                   return Transform.scale(
                                     scale: _textPulseAnimation?.value ?? 1.0,
@@ -648,7 +650,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
               
               // Control buttons
               Container(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
                     Expanded(
@@ -657,7 +659,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: primaryColor),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                          padding: EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                         child: Text(
                           'SKIP',
@@ -665,7 +667,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                         ),
                       ),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       flex: 2,
                       child: ElevatedButton(
@@ -674,16 +676,16 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                           backgroundColor: primaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                          padding: EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(isPaused ? Icons.play_arrow : Icons.pause),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
                               isPaused ? 'RESUME' : 'PAUSE',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -705,7 +707,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
       child: Row(
         children: [
           Icon(icon, size: 20, color: textColor.withOpacity(0.7)),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Text(
             '$label: ',
             style: TextStyle(
