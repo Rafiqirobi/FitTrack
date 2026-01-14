@@ -3,6 +3,8 @@ import 'package:FitTrack/screens/home_screen.dart';
 import 'package:FitTrack/screens/profile_screen.dart';
 import 'package:FitTrack/screens/browse_screen.dart';
 import 'package:FitTrack/screens/stats_screen.dart';
+import 'package:FitTrack/screens/run_history_screen.dart';
+import 'package:FitTrack/widgets/running_active_banner.dart'; // Running active indicator
 // Note: Removed dependency on AnimatedBottomBarItem since the design is now custom built.
 
 class NavBottomBar extends StatefulWidget {
@@ -36,6 +38,7 @@ class _NavBottomBarState extends State<NavBottomBar> {
     _pages = [
       HomeScreen(onToggleTheme: widget.onToggleTheme),
       BrowseScreen(onToggleTheme: widget.onToggleTheme),
+      const RunHistoryScreen(),
       StatsScreen(onToggleTheme: widget.onToggleTheme),
       ProfileScreen(onToggleTheme: widget.onToggleTheme),
     ];
@@ -111,9 +114,21 @@ class _NavBottomBarState extends State<NavBottomBar> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       // --------------------------
 
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
+      body: Column(
+        children: [
+          // 🏃 Running Active Banner (appears at top when running)
+          RunningActiveBanner(
+            onTap: _navigateToGpsScreen, // Return to GPS screen when tapped
+          ),
+          
+          // Main page content
+          Expanded(
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: _pages,
+            ),
+          ),
+        ],
       ),
 
       // --- Custom Bottom Bar Implementation using BottomAppBar for FAB docking ---
@@ -152,11 +167,14 @@ class _NavBottomBarState extends State<NavBottomBar> {
                 // Spacer for the FAB (Note: the CircularNotchedRectangle handles most of the space)
                 const SizedBox(width: 20), 
 
-                // Item 2: Stats (Bar Chart)
-                _buildNavItem(2, Icons.bar_chart_outlined, Icons.bar_chart, 'Stats', primaryColor),
+                // Item 2: Run History (Trophy/Medal)
+                _buildNavItem(2, Icons.history_outlined, Icons.history, 'History', primaryColor),
                 
-                // Item 3: Profile (Person)
-                _buildNavItem(3, Icons.person_outline, Icons.person, 'Profile', primaryColor),
+                // Item 3: Stats (Bar Chart)
+                _buildNavItem(3, Icons.bar_chart_outlined, Icons.bar_chart, 'Stats', primaryColor),
+                
+                // Item 4: Profile (Person)
+                _buildNavItem(4, Icons.person_outline, Icons.person, 'Profile', primaryColor),
               ],
             ),
           ),

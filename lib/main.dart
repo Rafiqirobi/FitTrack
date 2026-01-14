@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/notification_service.dart';
-//import 'utils/firebase_seed.dart'; // Workout seeding completed
+import 'utils/firebase_seed.dart'; // Workout seeding
 
 // Screens
 import 'screens/splash_screen.dart';
@@ -22,10 +22,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   
-  // Seed workout data (run once to populate new workouts)
-  // await seedWorkoutData();
+  // Seed workout data (run once to populate workouts).
+  // Run in background and do NOT block app startup (avoids hang when network is unavailable).
+  seedWorkoutData().then((_) {
+    print('✅ Background workout data seeding completed');
+  }).catchError((e) {
+    print('⚠️ Background workout data seeding failed: $e');
+  });
   
-  runApp(FitTrackApp());
+  runApp(const FitTrackApp());
 }
 
 class FitTrackApp extends StatefulWidget {
@@ -184,16 +189,19 @@ class _FitTrackAppState extends State<FitTrackApp> {
       darkTheme: darkTheme,
       initialRoute: '/', // Splash screen starts first
       routes: {
-        '/': (context) => SplashScreen(),
-        '/login': (context) => LoginScreen(),
-        '/register': (context) => RegisterScreen(),
+        '/': (context) => const SplashScreen(),
+        '/login': (context) {
+          final email = ModalRoute.of(context)?.settings.arguments as String?;
+          return LoginScreen(initialEmail: email);
+        },
+        '/register': (context) => const RegisterScreen(),
         '/navBottomBar': (context) => NavBottomBar(onToggleTheme: _toggleTheme),
-        '/workoutDetail': (context) => WorkoutDetailScreen(),
+        '/workoutDetail': (context) => const WorkoutDetailScreen(),
         '/browse': (context) => const BrowseScreen(),
-        '/workoutTimer': (context) => WorkoutTimerScreen(),
-        '/repsScreen': (context) => RepsScreen(),
-        '/favourites': (context) => FavouritesScreen(),
-        '/notificationTest': (context) => NotificationTestScreen(),
+        '/workoutTimer': (context) => const WorkoutTimerScreen(),
+        '/repsScreen': (context) => const RepsScreen(),
+        '/favourites': (context) => const FavouritesScreen(),
+        '/notificationTest': (context) => const NotificationTestScreen(),
         '/gpsInterface': (context) => const GpsInterfaceScreen(), // <<< NEW ROUTE ADDED
       },
     );

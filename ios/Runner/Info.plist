@@ -26,6 +26,11 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<!-- Location permission descriptions for run tracking -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>App needs your location to track runs and calculate distance.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>App needs location access to continue tracking while running.</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>

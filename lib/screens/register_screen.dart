@@ -49,7 +49,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Registration successful')),
           );
-          Navigator.pushReplacementNamed(context, '/login');
+          // Navigate to login and pass the email to pre-fill the email field
+          Navigator.pushReplacementNamed(
+            context, 
+            '/login',
+            arguments: email.trim(),
+          );
         }
       } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(

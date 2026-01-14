@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:FitTrack/models/completed_workout_model.dart'; // Adjust import path as needed
+import 'package:FitTrack/models/activity_model.dart'; // New unified activity model
+import 'package:FitTrack/models/run_route_model.dart'; // For running activities
 import 'package:FitTrack/services/goal_service.dart';
 
 // Rank system based on total workouts completed
@@ -50,6 +52,7 @@ class _StatsScreenState extends State<StatsScreen> {
   int _totalMinutes = 0;
   List<int> _weeklyWorkouts = List.filled(7, 0); // 0=Mon, ..., 6=Sun
   List<CompletedWorkout> _allCompletedWorkouts = []; // Stores all fetched workouts for calculations
+  List<Activity> _allActivities = []; // UNIFIED: Combines workouts + runs
   bool _isLoading = true;
   String? _userId;
   
@@ -61,8 +64,9 @@ class _StatsScreenState extends State<StatsScreen> {
   Map<String, dynamic> _userGoals = {};
   StreamSubscription? _goalsSubscription;
   
-  // Real-time listener for auto-updates
+  // Real-time listeners for auto-updates
   StreamSubscription<QuerySnapshot>? _workoutDataSubscription;
+  StreamSubscription<QuerySnapshot>? _runDataSubscription;
 
   @override
   void initState() {
@@ -190,12 +194,13 @@ class _StatsScreenState extends State<StatsScreen> {
     try {
       print('🔄 Setting up real-time listener for userId: $_userId'); // Debug print
       
-      // Cancel any existing subscription
+      // Cancel any existing subscriptions
       await _workoutDataSubscription?.cancel();
-      print('🔄 Previous subscription cancelled (if any)'); // Debug print
+      await _runDataSubscription?.cancel();
+      print('🔄 Previous subscriptions cancelled (if any)'); // Debug print
       
-      // Set up real-time listener
-      print('🔄 Creating Firestore snapshots listener...'); // Debug print
+      // ===== SET UP WORKOUTS LISTENER =====
+      print('🔄 Creating Firestore workouts listener...'); // Debug print
       _workoutDataSubscription = FirebaseFirestore.instance
           .collection('users')
           .doc(_userId)
@@ -204,13 +209,13 @@ class _StatsScreenState extends State<StatsScreen> {
           .snapshots()
           .listen(
         (QuerySnapshot snapshot) {
-          print('🔄 Real-time listener triggered: Found ${snapshot.docs.length} documents.'); // Debug print
+          print('🔄 Workouts listener triggered: Found ${snapshot.docs.length} documents.'); // Debug print
           if (mounted) {
             _processWorkoutData(snapshot);
           }
         },
         onError: (error) {
-          print('❌ Real-time listener error: $error');
+          print('❌ Workouts listener error: $error');
           if (mounted) {
             setState(() {
               _isLoading = false;
@@ -221,9 +226,31 @@ class _StatsScreenState extends State<StatsScreen> {
           }
         },
       );
-      print('🔄 Real-time listener setup complete!'); // Debug print
+      
+      // ===== SET UP RUNS LISTENER =====
+      print('🔄 Creating Firestore runs listener...'); // Debug print
+      _runDataSubscription = FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('runs')
+          .orderBy('startTime', descending: true)
+          .snapshots()
+          .listen(
+        (QuerySnapshot snapshot) {
+          print('🔄 Runs listener triggered: Found ${snapshot.docs.length} documents.'); // Debug print
+          if (mounted) {
+            _processRunData(snapshot);
+          }
+        },
+        onError: (error) {
+          print('⚠️  Runs listener error (non-critical): $error');
+          // Don't show error for runs as it's supplementary
+        },
+      );
+      
+      print('🔄 Real-time listeners setup complete!'); // Debug print
     } catch (e) {
-      print('❌ Error setting up real-time listener: $e');
+      print('❌ Error setting up real-time listeners: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -313,8 +340,90 @@ class _StatsScreenState extends State<StatsScreen> {
         // Calculate rank based on new total workouts
         _calculateRank();
         
+        // Rebuild unified activities
+        _rebuildActivitiesList();
+        
         print('🔄 Stats auto-updated: Total workouts: $_totalWorkouts, Calories: $_caloriesBurned, Minutes: $_totalMinutes'); // Debug print
         print('🔄 Weekly Workouts: $_weeklyWorkouts'); // Debug print
+      });
+    }
+  }
+
+  // Process running data and rebuild activities
+  void _processRunData(QuerySnapshot snapshot) {
+    print('🔄 _processRunData: Processing ${snapshot.docs.length} runs'); // Debug print
+    
+    List<RunRoute> runs = snapshot.docs
+        .map((doc) {
+          try {
+            return RunRoute.fromMap(doc.data() as Map<String, dynamic>, id: doc.id);
+          } catch (e) {
+            print('❌ Error parsing run: $e');
+            return null;
+          }
+        })
+        .whereType<RunRoute>()
+        .toList();
+
+    if (mounted) {
+      setState(() {
+        // Rebuild activities list with both workouts and runs
+        _rebuildActivitiesList();
+      });
+    }
+  }
+
+  // Rebuild unified activities list from workouts + runs
+  void _rebuildActivitiesList() {
+    List<Activity> activities = [];
+
+    // Convert workouts to activities
+    for (var workout in _allCompletedWorkouts) {
+      activities.add(WorkoutActivity(
+        id: workout.id,
+        timestamp: workout.timestamp,
+        workoutName: workout.workoutName,
+        workoutCategory: workout.workoutCategory,
+        durationMinutes: workout.actualDurationMinutes,
+        caloriesBurned: workout.actualCaloriesBurned,
+      ));
+    }
+
+    // Fetch runs from Firestore and convert to activities
+    if (_userId != null) {
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('runs')
+          .get()
+          .then((snapshot) {
+        for (var doc in snapshot.docs) {
+          try {
+            var runData = doc.data();
+            var run = RunRoute.fromMap(runData, id: doc.id);
+            
+            activities.add(RunActivity(
+              id: run.id,
+              timestamp: run.startTime,
+              durationSeconds: run.durationSeconds,
+              distanceKm: run.totalDistanceMeters / 1000,
+            ));
+          } catch (e) {
+            print('⚠️ Error converting run to activity: $e');
+          }
+        }
+
+        // Sort all activities by date (newest first)
+        activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+        if (mounted) {
+          setState(() {
+            _allActivities = activities;
+          });
+          print('✅ Rebuilt activities list: ${_allActivities.length} total (${_allCompletedWorkouts.length} workouts)');
+        }
+      }).catchError((e) {
+        print('⚠️ Error fetching runs: $e');
       });
     }
   }
@@ -794,10 +903,199 @@ class _StatsScreenState extends State<StatsScreen> {
                     _userGoals['monthlyCalories'] ?? 5000,
                     Icons.local_fire_department,
                   ),
+                  
+                  const SizedBox(height: 30),
+
+                  // ===== UNIFIED ACTIVITY HISTORY SECTION =====
+                  Text(
+                    'Activity History',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Activity Timeline
+                  if (_allActivities.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 48,
+                              color: primaryColor.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No activities yet',
+                              style: TextStyle(
+                                color: textColor.withOpacity(0.7),
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _allActivities.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final activity = _allActivities[index];
+                        return _buildActivityTile(context, activity, primaryColor, cardColor, textColor);
+                      },
+                    ),
                 ],
               ),
             ),
           ),
+    );
+  }
+
+  // Widget to display individual activity
+  Widget _buildActivityTile(BuildContext context, Activity activity, Color primaryColor, Color cardColor, Color textColor) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    // Determine icon and color based on activity type
+    IconData activityIcon;
+    Color activityColor;
+    
+    if (activity is WorkoutActivity) {
+      // Workout icons based on category
+      switch (activity.workoutCategory.toLowerCase()) {
+        case 'chest':
+          activityIcon = Icons.favorite;
+          activityColor = Colors.red;
+          break;
+        case 'back':
+          activityIcon = Icons.accessibility;
+          activityColor = Colors.orange;
+          break;
+        case 'legs':
+          activityIcon = Icons.directions_walk;
+          activityColor = Colors.purple;
+          break;
+        case 'arms':
+          activityIcon = Icons.sports_gymnastics;
+          activityColor = Colors.blue;
+          break;
+        case 'abs':
+          activityIcon = Icons.fitness_center;
+          activityColor = Colors.green;
+          break;
+        case 'cardio':
+          activityIcon = Icons.favorite_border;
+          activityColor = Colors.teal;
+          break;
+        case 'hiit':
+          activityIcon = Icons.local_fire_department;
+          activityColor = Colors.deepOrange;
+          break;
+        case 'yoga':
+          activityIcon = Icons.self_improvement;
+          activityColor = Colors.indigo;
+          break;
+        default:
+          activityIcon = Icons.fitness_center;
+          activityColor = primaryColor;
+      }
+    } else if (activity is RunActivity) {
+      activityIcon = Icons.directions_run;
+      activityColor = Colors.lightGreen;
+    } else {
+      activityIcon = Icons.dashboard;
+      activityColor = primaryColor;
+    }
+
+    // Format date
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final activityDate = DateTime(activity.timestamp.year, activity.timestamp.month, activity.timestamp.day);
+    final dayDiff = today.difference(activityDate).inDays;
+    
+    String dateLabel;
+    if (dayDiff == 0) {
+      dateLabel = 'Today at ${activity.timestamp.hour.toString().padLeft(2, '0')}:${activity.timestamp.minute.toString().padLeft(2, '0')}';
+    } else if (dayDiff == 1) {
+      dateLabel = 'Yesterday';
+    } else if (dayDiff < 7) {
+      dateLabel = '$dayDiff days ago';
+    } else {
+      dateLabel = '${activity.timestamp.month}/${activity.timestamp.day}/${activity.timestamp.year}';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: activityColor.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Activity Icon
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: activityColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              activityIcon,
+              color: activityColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          
+          // Activity Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  activity.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  activity.getDescription(),
+                  style: TextStyle(
+                    color: textColor.withOpacity(0.7),
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  dateLabel,
+                  style: TextStyle(
+                    color: textColor.withOpacity(0.5),
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

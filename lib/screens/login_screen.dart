@@ -4,7 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? initialEmail;
+  
+  const LoginScreen({super.key, this.initialEmail});
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -12,8 +14,22 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  late TextEditingController _emailController;
   String email = '', password = '';
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail ?? '');
+    email = widget.initialEmail ?? '';
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
 
   //  Email format validation
   String? _validateEmail(String? val) {
@@ -95,6 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           // Email Field
                           TextFormField(
+                            controller: _emailController,
                             decoration: InputDecoration(
                               labelText: 'Email',
                               hintText: 'Enter your email',

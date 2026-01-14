@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/workout_model.dart'; // Make sure this path is correct
 import '../models/completed_workout_model.dart'; // Make sure this path is correct
+import '../models/run_route_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -94,13 +95,8 @@ class FirestoreService {
 
   // Example: Stream to get all workouts (not completed ones)
   Stream<List<Workout>> getWorkouts() {
-    final userId = getCurrentUserId();
-    if (userId == null) {
-      return Stream.value([]);
-    }
+    // Read from the top-level 'workouts' collection (seeded data).
     return _db
-        .collection('users')
-        .doc(userId)
         .collection('workouts')
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -187,5 +183,92 @@ class FirestoreService {
 
       return favoriteWorkouts;
     });
+  }
+
+  // Method to save a completed run with route data
+  Future<void> saveRun(RunRoute runRoute) async {
+    final userId = getCurrentUserId();
+    if (userId == null) {
+      throw Exception("User not logged in. Cannot save run.");
+    }
+
+    try {
+      await _db
+          .collection('users')
+          .doc(userId)
+          .collection('runs')
+          .doc(runRoute.id)
+          .set(runRoute.toMap());
+      
+      print('✅ Run saved successfully to Firestore');
+    } catch (e) {
+      print('❌ Error saving run: $e');
+      rethrow;
+    }
+  }
+
+  // Method to get all runs for current user
+  Stream<List<RunRoute>> getRunsForCurrentUser() {
+    final userId = getCurrentUserId();
+    if (userId == null) {
+      return Stream.value([]);
+    }
+
+    return _db
+        .collection('users')
+        .doc(userId)
+        .collection('runs')
+        .orderBy('startTime', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => RunRoute.fromMap(doc.data(), id: doc.id))
+            .toList());
+  }
+
+  // Method to delete a single run
+  Future<void> deleteRun(String runId) async {
+    final userId = getCurrentUserId();
+    if (userId == null) {
+      throw Exception("User not logged in. Cannot delete run.");
+    }
+
+    try {
+      await _db
+          .collection('users')
+          .doc(userId)
+          .collection('runs')
+          .doc(runId)
+          .delete();
+      
+      print('✅ Run deleted successfully');
+    } catch (e) {
+      print('❌ Error deleting run: $e');
+      rethrow;
+    }
+  }
+
+  // Method to delete all runs for current user
+  Future<void> clearAllRuns() async {
+    final userId = getCurrentUserId();
+    if (userId == null) {
+      throw Exception("User not logged in. Cannot clear runs.");
+    }
+
+    try {
+      final runs = await _db
+          .collection('users')
+          .doc(userId)
+          .collection('runs')
+          .get();
+
+      for (var doc in runs.docs) {
+        await doc.reference.delete();
+      }
+      
+      print('✅ All runs cleared successfully');
+    } catch (e) {
+      print('❌ Error clearing runs: $e');
+      rethrow;
+    }
   }
 }
