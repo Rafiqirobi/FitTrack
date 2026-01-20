@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:geocoding/geocoding.dart';
 import '../models/run_route_model.dart';
 import '../models/completed_workout_model.dart';
 import '../models/workout_session.dart';
 import '../services/firestore_service.dart';
+import 'run_route_detail_screen.dart';
 
 class WorkoutHistoryScreen extends StatefulWidget {
   const WorkoutHistoryScreen({super.key});
@@ -14,6 +16,9 @@ class WorkoutHistoryScreen extends StatefulWidget {
 
 class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
   late FirestoreService _firestoreService;
+
+  // Cache for location names to avoid repeated API calls
+  final Map<String, String> _locationCache = {};
 
   @override
   void initState() {
@@ -57,7 +62,8 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete All', style: TextStyle(color: Colors.red)),
+            child:
+                const Text('Delete All', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -184,7 +190,8 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
     final date = DateFormat('MMM dd, yyyy · HH:mm').format(run.startTime);
     final pace = run.totalDistanceMeters > 0
         ? Duration(
-            seconds: ((run.durationSeconds * 1000) / run.totalDistanceMeters).toInt(),
+            seconds: ((run.durationSeconds * 1000) / run.totalDistanceMeters)
+                .toInt(),
           )
         : Duration.zero;
 
@@ -206,7 +213,8 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                child:
+                    const Text('Delete', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -222,70 +230,175 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
         padding: const EdgeInsets.only(right: 16),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  date,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.secondary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    distance,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RunRouteDetailScreen(run: run),
+            ),
+          );
+        },
+        child: Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          date,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.secondary,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'km',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildStatColumn(
-                    theme,
-                    icon: Icons.schedule,
-                    label: 'Duration',
-                    value: duration,
-                  ),
-                  _buildStatColumn(
-                    theme,
-                    icon: Icons.speed,
-                    label: 'Pace',
-                    value: '${_formatDuration(pace)}/km',
-                  ),
-                  _buildStatColumn(
-                    theme,
-                    icon: Icons.location_on,
-                    label: 'Points',
-                    value: '${run.coordinates.length}',
-                  ),
-                ],
-              ),
-            ],
+                    // Map indicator icon
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.map_outlined,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'View Route',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      distance,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'km',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildStatColumn(
+                      theme,
+                      icon: Icons.schedule,
+                      label: 'Duration',
+                      value: duration,
+                    ),
+                    _buildStatColumn(
+                      theme,
+                      icon: Icons.speed,
+                      label: 'Pace',
+                      value: '${_formatDuration(pace)}/km',
+                    ),
+                    // Location name instead of Points
+                    FutureBuilder<String>(
+                      future: _getLocationName(run),
+                      builder: (context, snapshot) {
+                        return _buildStatColumn(
+                          theme,
+                          icon: Icons.location_on,
+                          label: 'Location',
+                          value: snapshot.data ?? '...',
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  /// Get location name from coordinates using reverse geocoding
+  Future<String> _getLocationName(RunRoute run) async {
+    // Return cached value if available
+    if (_locationCache.containsKey(run.id)) {
+      return _locationCache[run.id]!;
+    }
+
+    // Need at least one coordinate
+    if (run.coordinates.isEmpty) {
+      return 'Unknown';
+    }
+
+    try {
+      // Use the first coordinate (starting point)
+      final startPoint = run.coordinates.first;
+
+      final placemarks = await placemarkFromCoordinates(
+        startPoint.latitude,
+        startPoint.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        // Build a short location name
+        String locationName = '';
+
+        if (place.subLocality != null && place.subLocality!.isNotEmpty) {
+          locationName = place.subLocality!;
+        } else if (place.locality != null && place.locality!.isNotEmpty) {
+          locationName = place.locality!;
+        } else if (place.subAdministrativeArea != null &&
+            place.subAdministrativeArea!.isNotEmpty) {
+          locationName = place.subAdministrativeArea!;
+        } else if (place.administrativeArea != null &&
+            place.administrativeArea!.isNotEmpty) {
+          locationName = place.administrativeArea!;
+        } else {
+          locationName = 'Unknown';
+        }
+
+        // Truncate if too long
+        if (locationName.length > 12) {
+          locationName = '${locationName.substring(0, 10)}...';
+        }
+
+        // Cache the result
+        _locationCache[run.id] = locationName;
+        return locationName;
+      }
+    } catch (e) {
+      print('⚠️ Error getting location name: $e');
+    }
+
+    _locationCache[run.id] = 'Unknown';
+    return 'Unknown';
   }
 
   Widget _buildWorkoutCard(CompletedWorkout workout) {
@@ -311,7 +424,8 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                child:
+                    const Text('Delete', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -382,7 +496,8 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
     );
   }
 
-  Widget _buildStatColumn(ThemeData theme, {required IconData icon, required String label, required String value}) {
+  Widget _buildStatColumn(ThemeData theme,
+      {required IconData icon, required String label, required String value}) {
     return Column(
       children: [
         Icon(icon, size: 20, color: theme.colorScheme.secondary),

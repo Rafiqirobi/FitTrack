@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/background_location_service.dart';
@@ -32,6 +34,8 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
   StreamSubscription<Position>? _positionStream;
   final Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
+  final FlutterLocalNotificationsPlugin _fln =
+      FlutterLocalNotificationsPlugin();
 
   // Map controller for programmatic control
   final MapController _mapController = MapController();
@@ -54,18 +58,19 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
       setState(() {
         _currentState = RunningState.running;
         _currentStatusText = 'RUNNING';
-        _distanceMeters = runningSession.distanceKm * 1000; // Convert km to meters
+        _distanceMeters =
+            runningSession.distanceKm * 1000; // Convert km to meters
         _timeElapsed = runningSession.formattedTime;
         _routeCoordinates.clear();
         _routeCoordinates.addAll(runningSession.routeCoordinates);
-        
+
         // Calculate pace if distance > 0
         if (_distanceMeters > 0) {
           final totalSeconds = runningSession.elapsedSeconds;
           _paceSeconds = (totalSeconds / (runningSession.distanceKm)).toInt();
         }
       });
-      
+
       // Start timer to keep UI updated
       _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
         if (!mounted) return;
@@ -78,8 +83,9 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
           }
         });
       });
-      
-      print('✅ Synced with existing session: ${_timeElapsed}, ${runningSession.distanceKm.toStringAsFixed(2)} km');
+
+      print(
+          '✅ Synced with existing session: ${_timeElapsed}, ${runningSession.distanceKm.toStringAsFixed(2)} km');
     }
   }
 
@@ -89,9 +95,11 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
       final lastKnownPosition = await Geolocator.getLastKnownPosition();
       if (lastKnownPosition != null && mounted) {
         setState(() {
-          _currentLocationLatLng = LatLng(lastKnownPosition.latitude, lastKnownPosition.longitude);
+          _currentLocationLatLng =
+              LatLng(lastKnownPosition.latitude, lastKnownPosition.longitude);
         });
-        print('📍 Using last known location: ${lastKnownPosition.latitude}, ${lastKnownPosition.longitude}');
+        print(
+            '📍 Using last known location: ${lastKnownPosition.latitude}, ${lastKnownPosition.longitude}');
         return;
       }
 
@@ -99,23 +107,50 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
       final hasPermission = await _ensureLocationPermission();
       if (hasPermission) {
         print('📍 Requesting current location...');
-        final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.medium,
-          timeLimit: const Duration(seconds:15), // Increased timeout
-        );
+        try {
+          // Try with medium accuracy first (faster)
+          final position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.medium,
+            timeLimit:
+                const Duration(seconds: 30), // Longer timeout for poor signal
+          );
 
-        if (mounted) {
-          setState(() {
-            _currentLocationLatLng = LatLng(position.latitude, position.longitude);
-          });
-          print('📍 Got current location: ${position.latitude}, ${position.longitude}');
+          if (mounted) {
+            setState(() {
+              _currentLocationLatLng =
+                  LatLng(position.latitude, position.longitude);
+            });
+            print(
+                '📍 Got current location: ${position.latitude}, ${position.longitude}');
+          }
+        } catch (e) {
+          // If medium accuracy fails, try with low accuracy (network-based, faster)
+          print('⚠️ Medium accuracy failed, trying low accuracy...');
+          try {
+            final position = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.low,
+              timeLimit: const Duration(seconds: 10),
+            );
+            if (mounted) {
+              setState(() {
+                _currentLocationLatLng =
+                    LatLng(position.latitude, position.longitude);
+              });
+              print(
+                  '📍 Got location with low accuracy: ${position.latitude}, ${position.longitude}');
+            }
+          } catch (e2) {
+            print('⚠️ Low accuracy also failed: $e2');
+            rethrow; // Let outer catch handle it
+          }
         }
       } else {
         // Permission denied - show message and keep NYC fallback
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Location permission needed for accurate map positioning'),
+              content: Text(
+                  'Location permission needed for accurate map positioning'),
               duration: Duration(seconds: 3),
             ),
           );
@@ -128,7 +163,8 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not get your location: ${e.toString().split('.').first}'),
+            content: Text(
+                'Could not get your location: ${e.toString().split('.').first}'),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -149,7 +185,9 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location services are disabled. Please enable them.')),
+        const SnackBar(
+            content:
+                Text('Location services are disabled. Please enable them.')),
       );
       return false;
     }
@@ -168,7 +206,8 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
     if (permission == LocationPermission.deniedForever) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Location permission permanently denied. Please enable it from settings.'),
+          content: const Text(
+              'Location permission permanently denied. Please enable it from settings.'),
           action: SnackBarAction(
             label: 'Settings',
             onPressed: () => Geolocator.openAppSettings(),
@@ -216,8 +255,24 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
 
     // Start foreground task for background tracking
     try {
-      await initializeForegroundTask();
-      await startForegroundTask();
+      // Request background location first (Android 10+)
+      await _ensureBackgroundLocationPermission();
+
+      // Then check notification permission (Android 13+)
+      final bool notificationsOk = await _ensureNotificationPermission();
+      if (notificationsOk) {
+        await initializeForegroundTask();
+        await startForegroundTask();
+      } else {
+        // Do not start foreground service without notification permission (Android 13+)
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text(
+                    'Notifications disabled. Background tracking may be limited.')),
+          );
+        }
+      }
     } catch (e) {
       print('⚠️ Foreground task error: $e');
     }
@@ -225,11 +280,11 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
     _stopwatch.reset();
     _stopwatch.start();
     _timer?.cancel();
-    
+
     // Create timer that updates every 500ms
     _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (!mounted) return; // Check if widget is still mounted
-      
+
       final elapsed = _stopwatch.elapsed;
       setState(() {
         _timeElapsed = _formatDuration(elapsed);
@@ -244,10 +299,12 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
     );
 
     try {
-      _positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+      _positionStream =
+          Geolocator.getPositionStream(locationSettings: locationSettings)
+              .listen(
         (pos) {
           if (!mounted) return;
-          
+
           if (_lastPosition != null) {
             final delta = Geolocator.distanceBetween(
               _lastPosition!.latitude,
@@ -259,28 +316,33 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
               _distanceMeters += delta;
               // Calculate pace (seconds per km)
               if (_distanceMeters > 0) {
-                _paceSeconds = (_stopwatch.elapsedMilliseconds / 1000 / (_distanceMeters / 1000)).toInt();
+                _paceSeconds = (_stopwatch.elapsedMilliseconds /
+                        1000 /
+                        (_distanceMeters / 1000))
+                    .toInt();
               }
             });
-            
+
             // 🌍 Update global running state (updates banner on all pages)
             final distanceKm = _distanceMeters / 1000;
             final paceStr = _formatDuration(Duration(seconds: _paceSeconds));
             runningSession.updateDistance(distanceKm, '$paceStr/km');
-            
-            print('📍 Distance: ${distanceKm.toStringAsFixed(2)} km | Pace: $paceStr/km');
+
+            print(
+                '📍 Distance: ${distanceKm.toStringAsFixed(2)} km | Pace: $paceStr/km');
           }
-          
+
           // Add to route and update map
           final newLatLng = LatLng(pos.latitude, pos.longitude);
-          runningSession.addRouteCoordinate(newLatLng); // Sync with global state
-          
+          runningSession
+              .addRouteCoordinate(newLatLng); // Sync with global state
+
           setState(() {
             _routeCoordinates.add(newLatLng);
             _currentLocationLatLng = newLatLng;
             _updatePolyline();
           });
-          
+
           _lastPosition = pos;
         },
         onError: (e) {
@@ -294,6 +356,98 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
     }
   }
 
+  // Request Android 13+ notification permission safely with user prompt
+  Future<bool> _ensureNotificationPermission() async {
+    try {
+      final androidPlugin = _fln.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin == null)
+        return true; // Non-Android or plugin unavailable
+
+      final areEnabled = await androidPlugin.areNotificationsEnabled();
+      if (areEnabled ?? true) return true;
+
+      // Show dialog prompting user to enable notifications
+      if (!mounted) return false;
+      final openSettings = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Enable Notifications'),
+          content: const Text(
+            'FitTrack needs notification permission to track your run in the background.\n\n'
+            'Please enable notifications for this app in Settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('SKIP'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('OPEN SETTINGS'),
+            ),
+          ],
+        ),
+      );
+
+      if (openSettings == true) {
+        await Geolocator.openAppSettings();
+      }
+      // Re-check after user returns
+      final nowEnabled = await androidPlugin.areNotificationsEnabled();
+      return nowEnabled ?? false;
+    } catch (e) {
+      print('⚠️ Notification permission check failed: $e');
+      return false;
+    }
+  }
+
+  // Request background location for Android 10+ with user prompt
+  Future<bool> _ensureBackgroundLocationPermission() async {
+    try {
+      // On Android 10+, background location is a separate permission
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.always) return true;
+
+      // If only whileInUse, prompt the user
+      if (permission == LocationPermission.whileInUse) {
+        if (!mounted) return false;
+        final openSettings = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Allow Background Location'),
+            content: const Text(
+              'For uninterrupted GPS tracking while your screen is off, '
+              'please grant "Allow all the time" location access in Settings.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('SKIP'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('OPEN SETTINGS'),
+              ),
+            ],
+          ),
+        );
+
+        if (openSettings == true) {
+          await Geolocator.openLocationSettings();
+        }
+        // Re-check
+        final updated = await Geolocator.checkPermission();
+        return updated == LocationPermission.always;
+      }
+
+      return false;
+    } catch (e) {
+      print('⚠️ Background location permission check failed: $e');
+      return false;
+    }
+  }
+
   void _pauseRun() {
     if (_currentState != RunningState.running) return;
     setState(() {
@@ -304,7 +458,8 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
     runningSession.pauseSession(); // Sync with global state
     _positionStream?.pause();
     _timer?.cancel();
-    print('⏸️ Run paused - Time: $_timeElapsed | Distance: ${(_distanceMeters / 1000).toStringAsFixed(2)} km');
+    print(
+        '⏸️ Run paused - Time: $_timeElapsed | Distance: ${(_distanceMeters / 1000).toStringAsFixed(2)} km');
   }
 
   void _resumeRun() {
@@ -379,9 +534,10 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
         Navigator.of(context).pop();
         print('✅ Successfully navigated back');
       } else {
-        // If can't pop, navigate to home screen to avoid black screen
+        // If can't pop, navigate to main nav bar (not splash screen)
         print('⚠️ Cannot pop - navigating to home screen');
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/navBottomBar', (route) => false);
       }
     } else {
       print('⚠️ Context not mounted - cannot navigate');
@@ -401,13 +557,15 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
 
       final firestoreService = FirestoreService();
       await firestoreService.saveRun(runRoute);
-      
+
       print('✅ Run successfully saved to Firestore');
     } catch (e) {
       print('❌ Error saving run to Firestore: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving run: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving run: $e')),
+        );
+      }
     }
   }
 
@@ -425,53 +583,156 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
   Widget _buildActionButton() {
     IconData icon;
     VoidCallback onPressed;
-    Color backgroundColor = Theme.of(context).colorScheme.primary;
+    List<Color> gradientColors;
+    String label;
 
-    if (_currentState == RunningState.notStarted || _currentState == RunningState.stopped) {
-      icon = Icons.directions_run_rounded;
+    if (_currentState == RunningState.notStarted ||
+        _currentState == RunningState.stopped) {
+      icon = Icons.play_arrow_rounded;
       onPressed = _startRun;
+      gradientColors = [const Color(0xFF11998E), const Color(0xFF38EF7D)];
+      label = 'START';
     } else if (_currentState == RunningState.running) {
       icon = Icons.pause_rounded;
       onPressed = _pauseRun;
-      backgroundColor = Colors.amber; // Change color when running
-    } else { // Paused
+      gradientColors = [const Color(0xFFFFB347), const Color(0xFFFFCC33)];
+      label = 'PAUSE';
+    } else {
+      // Paused
       icon = Icons.play_arrow_rounded;
       onPressed = _resumeRun;
-      backgroundColor = Colors.green; // Change color when paused
+      gradientColors = [const Color(0xFF11998E), const Color(0xFF38EF7D)];
+      label = 'RESUME';
     }
 
-    return FloatingActionButton.large(
-      onPressed: onPressed,
-      backgroundColor: backgroundColor,
-      child: Icon(icon, size: 48, color: Theme.of(context).scaffoldBackgroundColor),
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 140,
+        height: 140,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 56, color: Colors.white),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildStopButton() {
-    if (_currentState == RunningState.running || _currentState == RunningState.paused) {
+    if (_currentState == RunningState.running ||
+        _currentState == RunningState.paused) {
       return Padding(
-        padding: const EdgeInsets.only(top: 24.0),
-        child: ElevatedButton.icon(
-          onPressed: _stopRun,
-          icon: const Icon(Icons.stop_rounded),
-          label: const Text('STOP AND SAVE'),
-          style: ElevatedButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.onError,
-            backgroundColor: Theme.of(context).colorScheme.error,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: const EdgeInsets.only(top: 20.0),
+        child: GestureDetector(
+          onTap: _stopRun,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFF512F), Color(0xFFDD2476)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.stop_rounded, color: Colors.white, size: 24),
+                SizedBox(width: 8),
+                Text(
+                  'STOP & SAVE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
     return const SizedBox.shrink();
   }
+  
+  Widget _buildStatCard({
+    required String value,
+    required String label,
+    required IconData icon,
+    required List<Color> gradientColors,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
     // ⚠️ IMPORTANT: Only cancel stream if run is stopped
     // This allows the GPS tracking to continue even if user navigates away
-    if (_currentState == RunningState.stopped || _currentState == RunningState.notStarted) {
+    if (_currentState == RunningState.stopped ||
+        _currentState == RunningState.notStarted) {
       _positionStream?.cancel();
       _timer?.cancel();
       _stopwatch.stop();
@@ -486,15 +747,15 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
     return WillPopScope(
       onWillPop: () async {
         // If run is active, show confirmation dialog
-        if (_currentState == RunningState.running || _currentState == RunningState.paused) {
+        if (_currentState == RunningState.running ||
+            _currentState == RunningState.paused) {
           final shouldPop = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Leave Run?'),
               content: const Text(
-                'Your run is still active. You can return to it anytime using the run button.\n\n'
-                'GPS tracking will continue in the background.'
-              ),
+                  'Your run is still active. You can return to it anytime using the run button.\n\n'
+                  'GPS tracking will continue in the background.'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false), // Stay
@@ -545,7 +806,8 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
                 if (_currentLocationLatLng != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Location updated: ${_currentLocationLatLng!.latitude.toStringAsFixed(4)}, ${_currentLocationLatLng!.longitude.toStringAsFixed(4)}'),
+                      content: Text(
+                          'Location updated: ${_currentLocationLatLng!.latitude.toStringAsFixed(4)}, ${_currentLocationLatLng!.longitude.toStringAsFixed(4)}'),
                       duration: const Duration(seconds: 2),
                     ),
                   );
@@ -554,196 +816,337 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
             ),
           ],
         ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                // Status Indicator
-                Text(
-                  _currentStatusText,
-                  style: theme.textTheme.titleLarge!.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                  letterSpacing: 2,
-                ),
-              ),
-              
-              // Navigation hint for active runs
-              if (_currentState == RunningState.running || _currentState == RunningState.paused)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Tap run button to return to this screen anytime',
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      fontSize: 12,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              
-              const SizedBox(height: 40),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculate responsive sizes based on screen height
+            final screenHeight = constraints.maxHeight;
+            final isSmallScreen = screenHeight < 600;
+            final mapHeight = isSmallScreen
+                ? 180.0
+                : (screenHeight * 0.30).clamp(180.0, 280.0);
+            final timerFontSize = isSmallScreen ? 52.0 : 64.0;
+            final isDarkMode = theme.brightness == Brightness.dark;
 
-              // Time Elapsed (Main Metric)
-              Text(
-                _timeElapsed,
-                style: theme.textTheme.displayLarge!.copyWith(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 72,
-                ),
-              ),
-              Text(
-                'TIME ELAPSED',
-                style: theme.textTheme.bodySmall,
-              ),
-              const SizedBox(height: 40),
-
-              // Distance Metric
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        (_distanceMeters / 1000).toStringAsFixed(2),
-                        style: theme.textTheme.headlineLarge!.copyWith(fontWeight: FontWeight.bold),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              child: ConstrainedBox(
+                constraints:
+                    BoxConstraints(minHeight: constraints.maxHeight - 32),
+                child: Column(
+                  children: <Widget>[
+                    // Map Section at the top
+                    Container(
+                      height: mapHeight,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                      const Text(
-                        'Distance (km)',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 16),
-                      if (_paceSeconds > 0)
-                        Column(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: Stack(
                           children: [
-                            Text(
-                              _formatDuration(Duration(seconds: _paceSeconds)),
-                              style: theme.textTheme.headlineSmall!.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.secondary),
-                            ),
-                            const Text(
-                              'Per Kilometer',
-                              style: TextStyle(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Map with OpenStreetMap (free, no API key needed)
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: theme.dividerColor),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: _currentLocationLatLng == null
-                        ? Container(
-                            color: theme.cardColor,
-                            child: const Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircularProgressIndicator(),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    'Finding your location...',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
+                            _currentLocationLatLng == null
+                                ? Container(
+                                    color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.grey[100],
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          CircularProgressIndicator(
+                                            color: const Color(0xFF667EEA),
+                                            strokeWidth: 3,
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Finding your location...',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDarkMode ? Colors.white : Colors.black87,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Make sure location services are enabled',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
+                                  )
+                                : FlutterMap(
+                                    mapController: _mapController,
+                                    options: MapOptions(
+                                      initialCenter: _currentLocationLatLng ??
+                                          const LatLng(40.7128, -74.0060),
+                                      initialZoom: 16,
+                                      minZoom: 3,
+                                      maxZoom: 18,
                                     ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        : FlutterMap(
-                            mapController: _mapController,
-                            options: MapOptions(
-                              initialCenter: _currentLocationLatLng ?? const LatLng(40.7128, -74.0060), // Default to NYC
-                              initialZoom: 15,
-                              minZoom: 3,
-                              maxZoom: 18,
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'com.fittrack.app',
-                              ),
-                              if (_routeCoordinates.isNotEmpty)
-                                PolylineLayer(
-                                  polylines: [
-                                    Polyline(
-                                      points: _routeCoordinates,
-                                      color: Theme.of(context).colorScheme.primary,
-                                      strokeWidth: 5,
-                                    ),
-                                  ],
-                                ),
-                              if (_currentLocationLatLng != null)
-                                MarkerLayer(
-                                  markers: [
-                                    Marker(
-                                      point: _currentLocationLatLng!,
-                                      width: 40,
-                                      height: 40,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white, width: 3),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black26,
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
+                                    children: [
+                                      TileLayer(
+                                        urlTemplate:
+                                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                        userAgentPackageName: 'com.fittrack.app',
+                                      ),
+                                      if (_routeCoordinates.isNotEmpty)
+                                        PolylineLayer(
+                                          polylines: [
+                                            Polyline(
+                                              points: _routeCoordinates,
+                                              color: const Color(0xFF667EEA),
+                                              strokeWidth: 5,
                                             ),
                                           ],
                                         ),
-                                        child: const Icon(
-                                          Icons.my_location,
-                                          color: Colors.white,
-                                          size: 20,
+                                      if (_currentLocationLatLng != null)
+                                        MarkerLayer(
+                                          markers: [
+                                            Marker(
+                                              point: _currentLocationLatLng!,
+                                              width: 50,
+                                              height: 50,
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  gradient: const LinearGradient(
+                                                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                                                    begin: Alignment.topLeft,
+                                                    end: Alignment.bottomRight,
+                                                  ),
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(color: Colors.white, width: 3),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.navigation_rounded,
+                                                  color: Colors.white,
+                                                  size: 24,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
+                                    ],
+                                  ),
+                            // Status badge overlay
+                            Positioned(
+                              top: 12,
+                              left: 12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: _currentState == RunningState.running
+                                      ? const Color(0xFF11998E)
+                                      : _currentState == RunningState.paused
+                                          ? const Color(0xFFFFB347)
+                                          : isDarkMode
+                                              ? Colors.black.withOpacity(0.7)
+                                              : Colors.white.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_currentState == RunningState.running)
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        margin: const EdgeInsets.only(right: 8),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    Text(
+                                      _currentStatusText,
+                                      style: TextStyle(
+                                        color: _currentState == RunningState.running ||
+                                                _currentState == RunningState.paused
+                                            ? Colors.white
+                                            : (isDarkMode ? Colors.white : Colors.black87),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        letterSpacing: 1,
                                       ),
                                     ),
                                   ],
                                 ),
-                            ],
+                              ),
+                            ),
+                            // Center on location button
+                            Positioned(
+                              bottom: 12,
+                              right: 12,
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (_currentLocationLatLng != null) {
+                                    _mapController.move(_currentLocationLatLng!, 16);
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode ? Colors.black.withOpacity(0.7) : Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.my_location,
+                                    color: const Color(0xFF667EEA),
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: isSmallScreen ? 20 : 28),
+
+                    // Timer Section
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDarkMode
+                              ? [const Color(0xFF1E1E1E), const Color(0xFF2D2D2D)]
+                              : [Colors.white, Colors.grey[50]!],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: isDarkMode
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.black.withOpacity(0.05),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            _timeElapsed,
+                            style: TextStyle(
+                              fontSize: timerFontSize,
+                              fontWeight: FontWeight.w900,
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                              letterSpacing: 2,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
                           ),
-                  ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'DURATION',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: isSmallScreen ? 16 : 24),
+
+                    // Stats Cards Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            value: (_distanceMeters / 1000).toStringAsFixed(2),
+                            label: 'KM',
+                            icon: Icons.straighten_rounded,
+                            gradientColors: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatCard(
+                            value: _paceSeconds > 0
+                                ? _formatDuration(Duration(seconds: _paceSeconds))
+                                : '--:--',
+                            label: 'PACE/KM',
+                            icon: Icons.speed_rounded,
+                            gradientColors: [const Color(0xFF11998E), const Color(0xFF38EF7D)],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatCard(
+                            value: (_distanceMeters > 0
+                                ? ((_distanceMeters / 1000) * 60).toStringAsFixed(0)
+                                : '0'),
+                            label: 'KCAL',
+                            icon: Icons.local_fire_department_rounded,
+                            gradientColors: [const Color(0xFFFF512F), const Color(0xFFDD2476)],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: isSmallScreen ? 24 : 32),
+
+                    // Action Buttons - Row with Stop and Pause/Resume
+                    if (_currentState == RunningState.running ||
+                        _currentState == RunningState.paused)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Stop Button
+                          GestureDetector(
+                            onTap: _stopRun,
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFFF512F), Color(0xFFDD2476)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.stop_rounded, color: Colors.white, size: 32),
+                                  Text(
+                                    'STOP',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          // Pause/Resume Button
+                          _buildActionButton(),
+                        ],
+                      )
+                    else
+                      _buildActionButton(),
+
+                    // Navigation hint for active runs
+                    if (_currentState == RunningState.running ||
+                        _currentState == RunningState.paused)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16.0),
+                        child: Text(
+                          'GPS tracking continues in background',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
+                    SizedBox(height: isSmallScreen ? 16 : 24),
+                  ],
                 ),
               ),
-
-              // Action Button (Start/Pause/Resume)
-              _buildActionButton(),
-
-              // Stop Button (Only visible when running or paused)
-              _buildStopButton(),
-
-              const SizedBox(height: 50),
-            ],
-          ),
+            );
+          },
         ),
-      ),
       ),
     );
   }

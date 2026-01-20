@@ -121,11 +121,16 @@ class _SplashScreenState extends State<SplashScreen>
     // Use the current theme from context (follows the main app's theme)
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    
+    // Select logo based on theme:
+    // - Dark mode: black logo 
+    // - Light mode: white logo
+    final logoPath = isDarkMode 
+        ? 'lib/assets/fittracklogoblack.png'
+        : 'lib/assets/fittracklogowhite.png';
 
     return Scaffold(
-      backgroundColor: isDarkMode 
-          ? const Color(0xFF121212) // Dark theme background (matches neonDarkTheme)
-          : Colors.white, // Light theme background (matches neonLightTheme)
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       body: SizedBox(
         width: double.infinity,
         height: double.infinity,
@@ -133,35 +138,23 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // FitTrack logo with slide from left to center - Using theme colors
+              // FitTrack logo image with slide and fade animation
               SlideTransition(
                 position: _logoSlideAnimation,
                 child: FadeTransition(
                   opacity: _logoFadeAnimation,
-                  child: Text(
-                    'FITTRACK',
-                    style: TextStyle(
-                      fontSize: 52,
-                      fontWeight: FontWeight.w900, // Heavy weight (91-98 range)
-                      fontStyle: FontStyle.italic, // ITALIC like in your logo image
-                      color: const Color(0xFFFF5722), // Orange primary color
-                      letterSpacing: 3.0,
-                      fontFamily: 'HeadingNow91-98', // Updated to use Heading Now 91-98 font
-                      shadows: [
-                        Shadow(
-                          color: const Color(0xFFFF5722).withOpacity(0.5), // Orange shadow
-                          blurRadius: 10,
-                          offset: const Offset(2, 2),
-                        ),
-                      ],
-                    ),
+                  child: Image.asset(
+                    logoPath,
+                    width: 320,
+                    height: 180,
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
               
-              const SizedBox(height: 8), // Reduced gap from 20 to 8
+              const SizedBox(height: 24),
               
-              // Description with slide from right to center - Using theme colors
+              // Tagline with slide from right to center
               SlideTransition(
                 position: _descriptionSlideAnimation,
                 child: FadeTransition(
@@ -170,13 +163,9 @@ class _SplashScreenState extends State<SplashScreen>
                     'YOUR JOURNEY STARTS HERE',
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w500, // Medium weight
-                      fontStyle: FontStyle.italic, // ITALIC to match logo style
-                      color: isDarkMode 
-                          ? Colors.white70 // Light text for dark mode
-                          : Colors.black54, // Dark text for light mode
-                      letterSpacing: 1.5,
-                      fontFamily: 'HeadingNow91-98', // Updated to use Heading Now 91-98 font
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      letterSpacing: 2,
                     ),
                   ),
                 ),

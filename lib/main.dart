@@ -22,10 +22,10 @@ import 'screens/workout_history_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  
+
   // Remove seeding from main - do it only on first app run or when needed
   // seedWorkoutData() should be called from a dedicated screen/method when user navigates, not on startup
-  
+
   runApp(const FitTrackApp());
 }
 
@@ -37,19 +37,19 @@ class FitTrackApp extends StatefulWidget {
 }
 
 class _FitTrackAppState extends State<FitTrackApp> {
-  // Light theme configuration
+  // Light theme configuration - White background with Black accents
   final ThemeData _neonLightTheme = ThemeData(
     brightness: Brightness.light,
-    primaryColor: const Color(0xFFFF5722), // Orange primary
+    primaryColor: Colors.black, // Black primary
     scaffoldBackgroundColor: Colors.white,
     colorScheme: const ColorScheme.light(
-      primary: Color(0xFFFF5722), // Orange primary
-      secondary: Color(0xFFFF7043), // Light orange
+      primary: Colors.black, // Black primary
+      secondary: Color(0xFF424242), // Dark grey
       surface: Colors.white,
       background: Colors.white,
       error: Color(0xFFE53935),
       onPrimary: Colors.white,
-      tertiary: Color(0xFFFF8A65), // Lighter orange
+      tertiary: Color(0xFF616161), // Medium grey
       onSecondary: Colors.white,
       onSurface: Colors.black87,
     ),
@@ -57,20 +57,20 @@ class _FitTrackAppState extends State<FitTrackApp> {
     dividerColor: const Color(0xFFEEEEEE),
   );
 
-  // Dark theme configuration
+  // Dark theme configuration - Black background with White accents
   final ThemeData _neonDarkTheme = ThemeData(
     brightness: Brightness.dark,
-    primaryColor: const Color(0xFFFF5722), // Orange primary
+    primaryColor: Colors.white, // White primary
     scaffoldBackgroundColor: const Color(0xFF0A0A0A), // Near black
     colorScheme: const ColorScheme.dark(
-      primary: Color(0xFFFF5722), // Orange primary
-      secondary: Color(0xFFFF7043), // Light orange
+      primary: Colors.white, // White primary
+      secondary: Color(0xFFE0E0E0), // Light grey
       surface: Color(0xFF121212), // Slightly lighter black
       background: Color(0xFF0A0A0A), // Near black
       error: Color(0xFFE53935),
-      onPrimary: Colors.white,
-      tertiary: Color(0xFFFF8A65), // Lighter orange
-      onSecondary: Colors.white,
+      onPrimary: Colors.black,
+      tertiary: Color(0xFFBDBDBD), // Medium grey
+      onSecondary: Colors.black,
       onSurface: Colors.white,
     ),
   );
@@ -119,7 +119,7 @@ class _FitTrackAppState extends State<FitTrackApp> {
   Future<void> _initializeApp() async {
     // Load theme first (quick local operation)
     await _loadTheme();
-    
+
     // Lazy initialize notifications in background - don't block UI
     Future.microtask(() async {
       try {
@@ -136,7 +136,7 @@ class _FitTrackAppState extends State<FitTrackApp> {
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     final isDark = prefs.getBool('isDarkTheme');
-    
+
     if (isDark == null) {
       // First time launch - set default to dark mode and save it
       setState(() {
@@ -154,15 +154,15 @@ class _FitTrackAppState extends State<FitTrackApp> {
   void _toggleTheme() async {
     final prefs = await SharedPreferences.getInstance();
     final isCurrentlyDark = _themeMode == ThemeMode.dark;
-    
+
     // Update UI state
     setState(() {
       _themeMode = isCurrentlyDark ? ThemeMode.light : ThemeMode.dark;
     });
-    
+
     // Save the NEW theme state (opposite of current)
     await prefs.setBool('isDarkTheme', !isCurrentlyDark);
-    
+
     // Debug print to verify saving
     print('🎨 Theme toggled to: ${!isCurrentlyDark ? 'Dark' : 'Light'} mode');
     print('🔄 Saved to SharedPreferences: isDarkTheme = ${!isCurrentlyDark}');
@@ -207,66 +207,65 @@ class _FitTrackAppState extends State<FitTrackApp> {
   }
 }
 
-// 🎨 Dark Theme (These final definitions outside the class are redundant if used inside, 
-// but I'm keeping them to respect your original structure)
+// 🎨 Dark Theme - Black background with White accents
 final ThemeData neonDarkTheme = ThemeData(
   brightness: Brightness.dark,
-  primaryColor: const Color(0xFFFF5722),
+  primaryColor: Colors.white,
   scaffoldBackgroundColor: const Color.fromARGB(255, 29, 29, 29),
   cardColor: const Color(0xFF121212),
-  iconTheme: const IconThemeData(color: Color(0xFFFF5722)),
+  iconTheme: const IconThemeData(color: Colors.white),
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
-    backgroundColor: Color(0xFFFF5722),
-    foregroundColor: Colors.white,
+    backgroundColor: Colors.white,
+    foregroundColor: Colors.black,
   ),
   textTheme: const TextTheme(
     bodyLarge: TextStyle(color: Colors.white),
     bodyMedium: TextStyle(color: Colors.white70),
     titleLarge: TextStyle(
-      color: Color(0xFFFF5722),
+      color: Colors.white,
       fontWeight: FontWeight.bold,
     ),
   ),
   appBarTheme: const AppBarTheme(
     backgroundColor: Color(0xFF0A0A0A),
-    foregroundColor: Color(0xFFFF5722),
+    foregroundColor: Colors.white,
     elevation: 0,
   ),
   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
     backgroundColor: Color(0xFF0A0A0A),
-    selectedItemColor: Color(0xFFFF5722),
+    selectedItemColor: Colors.white,
     unselectedItemColor: Colors.grey,
     elevation: 8,
   ),
 );
 
-// 🎨 Light Theme
+// 🎨 Light Theme - White background with Black accents
 final ThemeData neonLightTheme = ThemeData(
   brightness: Brightness.light,
-  primaryColor: const Color(0xFFFF5722),
+  primaryColor: Colors.black,
   scaffoldBackgroundColor: Colors.white,
   cardColor: Colors.white,
-  iconTheme: const IconThemeData(color: Color(0xFFFF5722)),
+  iconTheme: const IconThemeData(color: Colors.black),
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
-    backgroundColor: Color(0xFFFF5722),
+    backgroundColor: Colors.black,
     foregroundColor: Colors.white,
   ),
   textTheme: const TextTheme(
     bodyLarge: TextStyle(color: Colors.black87),
     bodyMedium: TextStyle(color: Colors.black54),
     titleLarge: TextStyle(
-      color: Color(0xFFFF5722),
+      color: Colors.black,
       fontWeight: FontWeight.bold,
     ),
   ),
   appBarTheme: const AppBarTheme(
     backgroundColor: Colors.white,
-    foregroundColor: Color(0xFFFF5722),
+    foregroundColor: Colors.black,
     elevation: 0,
   ),
   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
     backgroundColor: Colors.white,
-    selectedItemColor: Color(0xFFFF5722),
+    selectedItemColor: Colors.black,
     unselectedItemColor: Color(0xFF9E9E9E),
     elevation: 8,
   ),

@@ -1,4 +1,5 @@
 import 'package:latlong2/latlong.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RunRoute {
   final String id;
@@ -27,8 +28,8 @@ class RunRoute {
                 'longitude': latLng.longitude,
               })
           .toList(),
-      'startTime': startTime.toIso8601String(),
-      'endTime': endTime?.toIso8601String(),
+      'startTime': Timestamp.fromDate(startTime),
+      'endTime': endTime != null ? Timestamp.fromDate(endTime!) : null,
       'totalDistanceMeters': totalDistanceMeters,
       'durationSeconds': durationSeconds,
     };
@@ -44,12 +45,23 @@ class RunRoute {
             ))
         .toList();
 
+    // Handle both Timestamp and ISO string for backward compatibility
+    DateTime parseDateTime(dynamic value) {
+      if (value is Timestamp) {
+        return value.toDate();
+      } else if (value is String) {
+        return DateTime.parse(value);
+      }
+      return DateTime.now();
+    }
+
     return RunRoute(
       id: id,
       coordinates: coordinates,
-      startTime: DateTime.parse(data['startTime'] as String),
-      endTime: data['endTime'] != null ? DateTime.parse(data['endTime'] as String) : null,
-      totalDistanceMeters: (data['totalDistanceMeters'] as num?)?.toDouble() ?? 0.0,
+      startTime: parseDateTime(data['startTime']),
+      endTime: data['endTime'] != null ? parseDateTime(data['endTime']) : null,
+      totalDistanceMeters:
+          (data['totalDistanceMeters'] as num?)?.toDouble() ?? 0.0,
       durationSeconds: (data['durationSeconds'] as num?)?.toInt() ?? 0,
     );
   }

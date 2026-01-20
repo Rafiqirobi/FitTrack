@@ -56,6 +56,14 @@ class _StatsScreenState extends State<StatsScreen> {
   bool _isLoading = true;
   String? _userId;
   
+  // Running stats variables
+  int _totalRuns = 0;
+  double _totalDistanceKm = 0.0;
+  int _totalRunMinutes = 0;
+  int _runCaloriesBurned = 0;
+  List<int> _weeklyRuns = List.filled(7, 0); // 0=Mon, ..., 6=Sun
+  List<RunRoute> _allRuns = [];
+  
   // Rank system variables
   Rank? _currentRank;
   Rank? _nextRank;
@@ -120,16 +128,17 @@ class _StatsScreenState extends State<StatsScreen> {
     ];
   }
 
-  // Calculate current rank based on total workout count
+  // Calculate current rank based on total activity count (workouts + runs)
   void _calculateRank() {
     final rankTiers = _getRankTiers();
+    final totalActivities = _totalWorkouts + _totalRuns;
     
     _currentRank = null;
     _nextRank = null;
     
     for (int i = 0; i < rankTiers.length; i++) {
       Rank rank = rankTiers[i];
-      if (_totalWorkouts >= rank.requiredWorkouts && _totalWorkouts <= rank.maxWorkouts) {
+      if (totalActivities >= rank.requiredWorkouts && totalActivities <= rank.maxWorkouts) {
         _currentRank = rank;
         
         // Set next rank if available
@@ -140,7 +149,7 @@ class _StatsScreenState extends State<StatsScreen> {
       }
     }
     
-    print('🏆 Current rank: ${_currentRank?.title}, Total workouts: $_totalWorkouts');
+    print('🏆 Current rank: ${_currentRank?.title}, Total activities: $totalActivities');
     if (_nextRank != null) {
       print('🎯 Next rank: ${_nextRank?.title}, Required: ${_nextRank?.requiredWorkouts}');
     }
@@ -233,7 +242,6 @@ class _StatsScreenState extends State<StatsScreen> {
           .collection('users')
           .doc(_userId)
           .collection('runs')
-          .orderBy('startTime', descending: true)
           .snapshots()
           .listen(
         (QuerySnapshot snapshot) {
@@ -365,10 +373,49 @@ class _StatsScreenState extends State<StatsScreen> {
         .whereType<RunRoute>()
         .toList();
 
+    // Calculate running stats
+    int newTotalRuns = runs.length;
+    double newTotalDistanceKm = 0.0;
+    int newTotalRunMinutes = 0;
+    int newRunCalories = 0;
+    List<int> newWeeklyRuns = List.filled(7, 0);
+    
+    DateTime now = DateTime.now();
+    int currentDay = now.weekday;
+    DateTime startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: currentDay - 1));
+    
+    for (var run in runs) {
+      newTotalDistanceKm += run.totalDistanceMeters / 1000;
+      newTotalRunMinutes += (run.durationSeconds / 60).round();
+      // Estimate calories: ~60 calories per km running (average)
+      newRunCalories += (run.totalDistanceMeters / 1000 * 60).round();
+      
+      // Check if the run falls within the current week
+      if (run.startTime.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+          run.startTime.isBefore(startOfWeek.add(const Duration(days: 7)))) {
+        int dayIndex = run.startTime.weekday - 1;
+        if (dayIndex >= 0 && dayIndex < 7) {
+          newWeeklyRuns[dayIndex]++;
+        }
+      }
+    }
+
     if (mounted) {
       setState(() {
+        _totalRuns = newTotalRuns;
+        _totalDistanceKm = newTotalDistanceKm;
+        _totalRunMinutes = newTotalRunMinutes;
+        _runCaloriesBurned = newRunCalories;
+        _weeklyRuns = newWeeklyRuns;
+        _allRuns = runs;
+        
+        // Recalculate rank (total activities = workouts + runs)
+        _calculateRank();
+        
         // Rebuild activities list with both workouts and runs
         _rebuildActivitiesList();
+        
+        print('🏃 Run stats updated: Total runs: $_totalRuns, Distance: ${_totalDistanceKm.toStringAsFixed(2)} km, Minutes: $_totalRunMinutes');
       });
     }
   }
@@ -389,42 +436,24 @@ class _StatsScreenState extends State<StatsScreen> {
       ));
     }
 
-    // Fetch runs from Firestore and convert to activities
-    if (_userId != null) {
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(_userId)
-          .collection('runs')
-          .get()
-          .then((snapshot) {
-        for (var doc in snapshot.docs) {
-          try {
-            var runData = doc.data();
-            var run = RunRoute.fromMap(runData, id: doc.id);
-            
-            activities.add(RunActivity(
-              id: run.id,
-              timestamp: run.startTime,
-              durationSeconds: run.durationSeconds,
-              distanceKm: run.totalDistanceMeters / 1000,
-            ));
-          } catch (e) {
-            print('⚠️ Error converting run to activity: $e');
-          }
-        }
+    // Convert runs to activities (use stored runs)
+    for (var run in _allRuns) {
+      activities.add(RunActivity(
+        id: run.id,
+        timestamp: run.startTime,
+        durationSeconds: run.durationSeconds,
+        distanceKm: run.totalDistanceMeters / 1000,
+      ));
+    }
 
-        // Sort all activities by date (newest first)
-        activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    // Sort all activities by date (newest first)
+    activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-        if (mounted) {
-          setState(() {
-            _allActivities = activities;
-          });
-          print('✅ Rebuilt activities list: ${_allActivities.length} total (${_allCompletedWorkouts.length} workouts)');
-        }
-      }).catchError((e) {
-        print('⚠️ Error fetching runs: $e');
+    if (mounted) {
+      setState(() {
+        _allActivities = activities;
       });
+      print('✅ Rebuilt activities list: ${_allActivities.length} total (${_allCompletedWorkouts.length} workouts + ${_allRuns.length} runs)');
     }
   }
 
@@ -448,15 +477,28 @@ class _StatsScreenState extends State<StatsScreen> {
 
     try {
       print('🔄 PULL-TO-REFRESH: Fetching data for userId: $_userId'); // Debug print
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
+      
+      // Fetch workouts
+      QuerySnapshot workoutSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(_userId)
           .collection('completedWorkouts')
           .orderBy('timestamp', descending: true)
           .get();
 
-      print('🔄 PULL-TO-REFRESH: Found ${snapshot.docs.length} documents.'); // Debug print
-      _processWorkoutData(snapshot);
+      print('🔄 PULL-TO-REFRESH: Found ${workoutSnapshot.docs.length} workouts.'); // Debug print
+      _processWorkoutData(workoutSnapshot);
+      
+      // Fetch runs
+      QuerySnapshot runSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('runs')
+          .get();
+
+      print('🔄 PULL-TO-REFRESH: Found ${runSnapshot.docs.length} runs.'); // Debug print
+      _processRunData(runSnapshot);
+      
     } catch (e) {
       print('❌ Error in pull-to-refresh: $e'); // Original error message
       if (mounted) {
@@ -472,41 +514,64 @@ class _StatsScreenState extends State<StatsScreen> {
 
   @override
   void dispose() {
-    // Cancel the real-time listener to prevent memory leaks
+    // Cancel the real-time listeners to prevent memory leaks
     _workoutDataSubscription?.cancel();
+    _runDataSubscription?.cancel();
     _goalsSubscription?.cancel();
     super.dispose();
   }
 
-  // Helper method to calculate today's minutes
+  // Helper method to calculate today's minutes (workouts + runs)
   int _getTodayMinutes() {
     DateTime today = DateTime.now();
     DateTime startOfToday = DateTime(today.year, today.month, today.day);
     DateTime endOfToday = startOfToday.add(const Duration(days: 1));
 
     int todayMinutes = 0;
+    
+    // Add workout minutes
     for (var workout in _allCompletedWorkouts) {
       bool isToday = workout.timestamp.isAfter(startOfToday) && workout.timestamp.isBefore(endOfToday);
       if (isToday) {
         todayMinutes += workout.actualDurationMinutes;
       }
     }
+    
+    // Add run minutes
+    for (var run in _allRuns) {
+      bool isToday = run.startTime.isAfter(startOfToday) && run.startTime.isBefore(endOfToday);
+      if (isToday) {
+        todayMinutes += (run.durationSeconds / 60).round();
+      }
+    }
+    
     return todayMinutes;
   }
 
-  // Helper method to calculate monthly calories
+  // Helper method to calculate monthly calories (workouts + runs)
   int _getMonthlyCalories() {
     DateTime now = DateTime.now();
     DateTime startOfMonth = DateTime(now.year, now.month, 1);
     DateTime endOfMonth = DateTime(now.year, now.month + 1, 1);
 
     int monthlyCalories = 0;
+    
+    // Add workout calories
     for (var workout in _allCompletedWorkouts) {
       bool isThisMonth = workout.timestamp.isAfter(startOfMonth) && workout.timestamp.isBefore(endOfMonth);
       if (isThisMonth) {
         monthlyCalories += workout.actualCaloriesBurned;
       }
     }
+    
+    // Add run calories (estimate ~60 cal/km)
+    for (var run in _allRuns) {
+      bool isThisMonth = run.startTime.isAfter(startOfMonth) && run.startTime.isBefore(endOfMonth);
+      if (isThisMonth) {
+        monthlyCalories += (run.totalDistanceMeters / 1000 * 60).round();
+      }
+    }
+    
     return monthlyCalories;
   }
 
@@ -686,7 +751,7 @@ class _StatsScreenState extends State<StatsScreen> {
                                       ),
                                     ),
                                     Text(
-                                      '${_nextRank!.requiredWorkouts - _totalWorkouts} more',
+                                      '${_nextRank!.requiredWorkouts - (_totalWorkouts + _totalRuns)} more',
                                       style: TextStyle(
                                         color: Colors.white.withOpacity(0.9),
                                         fontSize: 14,
@@ -705,7 +770,7 @@ class _StatsScreenState extends State<StatsScreen> {
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(4),
                                     child: LinearProgressIndicator(
-                                      value: _totalWorkouts / _nextRank!.requiredWorkouts,
+                                      value: (_totalWorkouts + _totalRuns) / _nextRank!.requiredWorkouts,
                                       backgroundColor: Colors.transparent,
                                       valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                                     ),
@@ -761,9 +826,11 @@ class _StatsScreenState extends State<StatsScreen> {
                       Expanded(
                         child: _buildStatCard(
                           context,
-                          title: 'Total Workouts',
-                          value: '$_totalWorkouts',
+                          title: 'Total Activities',
+                          value: '${_totalWorkouts + _totalRuns}',
                           icon: Icons.fitness_center,
+                          gradientStart: const Color(0xFF667EEA),
+                          gradientEnd: const Color(0xFF764BA2),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -771,9 +838,13 @@ class _StatsScreenState extends State<StatsScreen> {
                         child: _buildStatCard(
                           context,
                           title: 'Calories Burned',
-                          // Formats to "12.3k" if over 1000, else "123"
-                          value: (_caloriesBurned >= 1000 ? '${(_caloriesBurned / 1000).toStringAsFixed(1)}k' : _caloriesBurned.toString()),
+                          // Combined calories from workouts + runs
+                          value: ((_caloriesBurned + _runCaloriesBurned) >= 1000 
+                              ? '${((_caloriesBurned + _runCaloriesBurned) / 1000).toStringAsFixed(1)}k' 
+                              : (_caloriesBurned + _runCaloriesBurned).toString()),
                           icon: Icons.local_fire_department,
+                          gradientStart: const Color(0xFFFF512F),
+                          gradientEnd: const Color(0xFFDD2476),
                         ),
                       ),
                     ],
@@ -786,8 +857,10 @@ class _StatsScreenState extends State<StatsScreen> {
                         child: _buildStatCard(
                           context,
                           title: 'Total Minutes',
-                          value: '$_totalMinutes',
+                          value: '${_totalMinutes + _totalRunMinutes}',
                           icon: Icons.timer,
+                          gradientStart: const Color(0xFF11998E),
+                          gradientEnd: const Color(0xFF38EF7D),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -798,6 +871,47 @@ class _StatsScreenState extends State<StatsScreen> {
                           // Use the calculated average here
                           value: avgWorkoutsPerWeekValue.toStringAsFixed(1),
                           icon: Icons.trending_up,
+                          gradientStart: const Color(0xFFF093FB),
+                          gradientEnd: const Color(0xFFF5576C),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Running Stats Section
+                  Text(
+                    'Running Stats',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          context,
+                          title: 'Total Runs',
+                          value: '$_totalRuns',
+                          icon: Icons.directions_run,
+                          gradientStart: const Color(0xFF4FACFE),
+                          gradientEnd: const Color(0xFF00F2FE),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildStatCard(
+                          context,
+                          title: 'Total Distance',
+                          value: '${_totalDistanceKm.toStringAsFixed(1)} km',
+                          icon: Icons.straighten,
+                          gradientStart: const Color(0xFFFA709A),
+                          gradientEnd: const Color(0xFFFEE140),
                         ),
                       ),
                     ],
@@ -833,7 +947,7 @@ class _StatsScreenState extends State<StatsScreen> {
                               .map((entry) => _buildWeeklyBar(
                                   context,
                                   entry.value,
-                                  _weeklyWorkouts[entry.key],
+                                  _weeklyWorkouts[entry.key] + _weeklyRuns[entry.key],
                                 ))
                               .toList(),
                         ),
@@ -842,7 +956,7 @@ class _StatsScreenState extends State<StatsScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'This Week: ${_weeklyWorkouts.reduce((a, b) => a + b)} workouts',
+                              'This Week: ${_weeklyWorkouts.reduce((a, b) => a + b) + _weeklyRuns.reduce((a, b) => a + b)} activities',
                               style: TextStyle(
                                 color: hintColor,
                                 fontSize: 14,
@@ -887,8 +1001,8 @@ class _StatsScreenState extends State<StatsScreen> {
                   _buildGoalCard(
                     context,
                     'Weekly Goal',
-                    'Complete ${_userGoals['weeklyWorkouts'] ?? 5} workouts',
-                    _weeklyWorkouts.reduce((a, b) => a + b),
+                    'Complete ${_userGoals['weeklyWorkouts'] ?? 5} activities',
+                    _weeklyWorkouts.reduce((a, b) => a + b) + _weeklyRuns.reduce((a, b) => a + b),
                     _userGoals['weeklyWorkouts'] ?? 5,
                     Icons.flag_outlined,
                   ),
@@ -1198,35 +1312,60 @@ class _StatsScreenState extends State<StatsScreen> {
     required String title,
     required String value,
     required IconData icon,
+    Color? gradientStart,
+    Color? gradientEnd,
   }) {
-    final theme = Theme.of(context);
-    final Color hintColor = Theme.of(context).brightness == Brightness.dark ? Colors.grey[600]! : Colors.grey[400]!;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    // Default to a subtle gradient if no colors provided
+    final Color startColor = gradientStart ?? (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5));
+    final Color endColor = gradientEnd ?? (isDarkMode ? const Color(0xFF1E1E1E) : Colors.white);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        gradient: LinearGradient(
+          colors: [startColor, endColor],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: startColor.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Icon(icon, color: theme.primaryColor, size: 32),
-          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.white, size: 28),
+          ),
+          const SizedBox(height: 12),
           Text(
             value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.primaryColor,
-              fontSize: 20,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: hintColor,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.85),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

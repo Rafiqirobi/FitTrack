@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:FitTrack/screens/home_screen.dart';
-import 'package:FitTrack/screens/profile_screen.dart';
+import 'package:FitTrack/screens/profile_screen_cubit.dart';
 // Removed Browse screen to match 4-item bottom bar
-import 'package:FitTrack/screens/stats_screen.dart';
+import 'package:FitTrack/screens/stats_screen_cubit.dart';
 import 'package:FitTrack/screens/workout_history_screen.dart';
 import 'package:FitTrack/widgets/running_active_banner.dart'; // Running active indicator
 // Note: Removed dependency on AnimatedBottomBarItem since the design is now custom built.
@@ -43,8 +43,8 @@ class _NavBottomBarState extends State<NavBottomBar>
     _pages = [
       HomeScreen(onToggleTheme: widget.onToggleTheme),
       const WorkoutHistoryScreen(),
-      StatsScreen(onToggleTheme: widget.onToggleTheme),
-      ProfileScreen(onToggleTheme: widget.onToggleTheme),
+      StatsScreenCubit(onToggleTheme: widget.onToggleTheme),
+      ProfileScreenCubit(onToggleTheme: widget.onToggleTheme),
     ];
   }
 
@@ -127,83 +127,19 @@ class _NavBottomBarState extends State<NavBottomBar>
             builder: (context, child) {
               return Transform.scale(
                 scale: scaleAnimation.value,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Icon with glow effect when selected
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected
-                              ? primaryColor.withOpacity(0.15)
-                              : Colors.transparent,
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: primaryColor.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    spreadRadius: 1,
-                                  )
-                                ]
-                              : null,
-                        ),
-                        child: Icon(
-                          isSelected ? selectedIcon : unselectedIcon,
-                          color: colorAnimation.value,
-                          size: 22,
-                        ),
-                      ),
-
-                      const SizedBox(height: 1),
-
-                      // Label with fade animation
-                      AnimatedOpacity(
-                        opacity: isSelected ? 1.0 : 0.7,
-                        duration: const Duration(milliseconds: 200),
-                        child: Text(
-                          label,
-                          style:
-                              Theme.of(context).textTheme.bodySmall!.copyWith(
-                                    fontSize: 9,
-                                    height: 1.0,
-                                    color: colorAnimation.value,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                    letterSpacing: 0.5,
-                                  ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 2),
-
-                      // Modern animated indicator
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.elasticOut,
-                        width: isSelected ? 16 : 0,
-                        height: isSelected ? 2 : 0,
-                        decoration: BoxDecoration(
-                          color: primaryColor,
-                          borderRadius: BorderRadius.circular(2),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: primaryColor.withOpacity(0.4),
-                                    blurRadius: 3,
-                                    spreadRadius: 0.25,
-                                  )
-                                ]
-                              : null,
-                        ),
-                      ),
-                    ],
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? primaryColor.withOpacity(0.15)
+                        : Colors.transparent,
+                  ),
+                  child: Icon(
+                    isSelected ? selectedIcon : unselectedIcon,
+                    color: colorAnimation.value,
+                    size: 26,
                   ),
                 ),
               );
@@ -221,46 +157,25 @@ class _NavBottomBarState extends State<NavBottomBar>
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      // --- Modern FAB with Enhanced Styling ---
+      // --- Modern FAB without glow ---
       floatingActionButton: Container(
-        height: 60, // Reduced size to match navigation bar
+        height: 60,
         width: 60,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              primaryColor,
-              primaryColor.withOpacity(0.8),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: primaryColor,
           shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: primaryColor.withOpacity(0.4),
-              spreadRadius: 2,
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              spreadRadius: 0,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: FloatingActionButton(
           onPressed: _navigateToGpsScreen,
           tooltip: 'Start GPS Tracking',
           elevation: 0,
           backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
+          foregroundColor: isDarkMode ? Colors.black : Colors.white,
           shape: const CircleBorder(),
-          child: const Icon(
-            Icons.location_on_rounded,
-            size: 26, // Slightly smaller icon
-            color: Colors.white,
+          child: Icon(
+            Icons.directions_run,
+            size: 26,
+            color: isDarkMode ? Colors.black : Colors.white,
           ),
         ),
       ),
@@ -285,54 +200,27 @@ class _NavBottomBarState extends State<NavBottomBar>
         ],
       ),
 
-      // --- Custom Bottom Bar Implementation using BottomAppBar for FAB docking ---
+      // --- Custom Bottom Bar without glow ---
       bottomNavigationBar: SafeArea(
         top: false,
         minimum: const EdgeInsets.only(bottom: 0),
         child: Container(
-          // Removed vertical margin to prevent overflow
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-          height: 56, // Standard height for bottom navigation
+          height: 56,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDarkMode
-                  ? [
-                      const Color(0xFF1E1E1E), // Dark theme base
-                      const Color(0xFF2A2A2A), // Slightly lighter dark
-                    ]
-                  : [
-                      Colors.white, // Light theme base
-                      Colors.white.withOpacity(0.95), // Slight transparency
-                    ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderRadius: BorderRadius.circular(20), // Reduced radius
-            boxShadow: [
-              BoxShadow(
-                color: isDarkMode
-                    ? Colors.black.withOpacity(0.4)
-                    : Colors.black.withOpacity(0.12),
-                spreadRadius: 1,
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: primaryColor.withOpacity(0.08),
-                spreadRadius: 0,
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: isDarkMode
+                ? const Color(0xFF1E1E1E)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(28),
             border: Border.all(
               color: isDarkMode
                   ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-              width: 0.5,
+                  : Colors.black.withOpacity(0.1),
+              width: 1,
             ),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20), // Match container radius
+            borderRadius: BorderRadius.circular(28), // Match container radius
             // Use BottomAppBar for the shape cut-out required by the centerDocked FAB
             child: BottomAppBar(
               elevation: 0, // Elevation handled by the outer Container's shadow
