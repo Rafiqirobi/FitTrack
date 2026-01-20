@@ -286,7 +286,29 @@ class AboutFitTrackScreen extends StatelessWidget {
               
               const SizedBox(height: 20),
               
-              // Legal Information
+              // Get Started Button
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushReplacementNamed(context, '/login');
+                  },
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Get Started'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 4,
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),

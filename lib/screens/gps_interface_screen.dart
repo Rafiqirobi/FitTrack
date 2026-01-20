@@ -33,9 +33,116 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
   final Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
 
+  // Map controller for programmatic control
+  final MapController _mapController = MapController();
+
   // Map state
   final List<LatLng> _routeCoordinates = [];
   LatLng? _currentLocationLatLng;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeMapLocation();
+    _checkExistingSession();
+  }
+
+  void _checkExistingSession() {
+    // If there's already a running session, sync with it
+    if (runningSession.isRunning) {
+      print('🔄 Found existing running session, syncing...');
+      setState(() {
+        _currentState = RunningState.running;
+        _currentStatusText = 'RUNNING';
+        _distanceMeters = runningSession.distanceKm * 1000; // Convert km to meters
+        _timeElapsed = runningSession.formattedTime;
+        _routeCoordinates.clear();
+        _routeCoordinates.addAll(runningSession.routeCoordinates);
+        
+        // Calculate pace if distance > 0
+        if (_distanceMeters > 0) {
+          final totalSeconds = runningSession.elapsedSeconds;
+          _paceSeconds = (totalSeconds / (runningSession.distanceKm)).toInt();
+        }
+      });
+      
+      // Start timer to keep UI updated
+      _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+        if (!mounted) return;
+        final elapsed = runningSession.elapsedSeconds;
+        setState(() {
+          _timeElapsed = runningSession.formattedTime;
+          // Update pace calculation
+          if (_distanceMeters > 0) {
+            _paceSeconds = (elapsed / (runningSession.distanceKm)).toInt();
+          }
+        });
+      });
+      
+      print('✅ Synced with existing session: ${_timeElapsed}, ${runningSession.distanceKm.toStringAsFixed(2)} km');
+    }
+  }
+
+  Future<void> _initializeMapLocation() async {
+    try {
+      // First try to get last known position (faster)
+      final lastKnownPosition = await Geolocator.getLastKnownPosition();
+      if (lastKnownPosition != null && mounted) {
+        setState(() {
+          _currentLocationLatLng = LatLng(lastKnownPosition.latitude, lastKnownPosition.longitude);
+        });
+        print('📍 Using last known location: ${lastKnownPosition.latitude}, ${lastKnownPosition.longitude}');
+        return;
+      }
+
+      // If no last known position, request current location
+      final hasPermission = await _ensureLocationPermission();
+      if (hasPermission) {
+        print('📍 Requesting current location...');
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds:15), // Increased timeout
+        );
+
+        if (mounted) {
+          setState(() {
+            _currentLocationLatLng = LatLng(position.latitude, position.longitude);
+          });
+          print('📍 Got current location: ${position.latitude}, ${position.longitude}');
+        }
+      } else {
+        // Permission denied - show message and keep NYC fallback
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location permission needed for accurate map positioning'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        print('⚠️ Location permission denied, using fallback location');
+      }
+    } catch (e) {
+      print('⚠️ Could not get location: $e');
+      // Show user-friendly message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not get your location: ${e.toString().split('.').first}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+
+    // Final fallback - if still no location, use NYC
+    if (_currentLocationLatLng == null && mounted) {
+      setState(() {
+        _currentLocationLatLng = const LatLng(40.7128, -74.0060); // NYC
+      });
+      print('📍 Using fallback location (New York City)');
+    }
+  }
 
   // --- Permission & Location Helpers ---
   Future<bool> _ensureLocationPermission() async {
@@ -76,6 +183,21 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
 
   // --- State Management Functions ---
   Future<void> _startRun() async {
+    // If there's already a running session, don't start a new one
+    if (runningSession.isRunning) {
+      print('⚠️ Run already active, navigating to resume existing session');
+      // Just update UI to match current session
+      setState(() {
+        _currentState = RunningState.running;
+        _currentStatusText = 'RUNNING';
+        _distanceMeters = runningSession.distanceKm * 1000;
+        _timeElapsed = runningSession.formattedTime;
+        _routeCoordinates.clear();
+        _routeCoordinates.addAll(runningSession.routeCoordinates);
+      });
+      return;
+    }
+
     final ok = await _ensureLocationPermission();
     if (!ok) return;
 
@@ -203,8 +325,11 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
     print('▶️ Run resumed - Continuing from $_timeElapsed');
   }
 
-  void _stopRun() {
+  void _stopRun() async {
     if (_currentState == RunningState.notStarted) return;
+
+    print('🛑 Stopping run... Current state: $_currentState');
+
     setState(() {
       _currentState = RunningState.stopped;
       _currentStatusText = 'STOPPED';
@@ -212,37 +337,55 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
 
     // 🌍 Stop global running state (removes banner from all pages)
     runningSession.stopSession();
+    print('✅ Global running session stopped');
 
     _stopwatch.stop();
     _positionStream?.cancel();
     _positionStream = null;
     _timer?.cancel();
+    print('✅ Local timers and streams stopped');
 
     // Stop foreground task
     stopForegroundTask();
     stopLocationTracking();
+    print('✅ Foreground task and location tracking stopped');
 
-    // Save run to Firestore
-    _saveRunToFirestore();
+    // Save run to Firestore (await completion)
+    await _saveRunToFirestore();
 
     // Show completion summary
     final meters = _distanceMeters;
     final elapsed = _stopwatch.elapsed;
     final km = (meters / 1000).toStringAsFixed(2);
     final time = _formatDuration(elapsed);
-    
+
     print('\n🏁 RUN COMPLETED');
     print('⏱️ Time: $time');
     print('📍 Distance: $km km');
     print('${_routeCoordinates.length} waypoints recorded\n');
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('✅ Run saved — $km km in $time')),
-    );
 
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pop();
-    });
+    // Show completion summary (safely)
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('✅ Run saved — $km km in $time')),
+      );
+    }
+
+    // Navigate after save is complete
+    if (mounted) {
+      // Try to pop normally first
+      if (Navigator.of(context).canPop()) {
+        print('✅ Can pop, navigating back...');
+        Navigator.of(context).pop();
+        print('✅ Successfully navigated back');
+      } else {
+        // If can't pop, navigate to home screen to avoid black screen
+        print('⚠️ Cannot pop - navigating to home screen');
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    } else {
+      print('⚠️ Context not mounted - cannot navigate');
+    }
   }
 
   Future<void> _saveRunToFirestore() async {
@@ -342,18 +485,74 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
 
     return WillPopScope(
       onWillPop: () async {
-        // If run is active, allow navigation (user can return via banner)
+        // If run is active, show confirmation dialog
         if (_currentState == RunningState.running || _currentState == RunningState.paused) {
-          print('⏸️ User navigated away while running - GPS continues in background');
-          return true; // Allow navigation
+          final shouldPop = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Leave Run?'),
+              content: const Text(
+                'Your run is still active. You can return to it anytime using the run button.\n\n'
+                'GPS tracking will continue in the background.'
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false), // Stay
+                  child: const Text('STAY'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true), // Leave
+                  child: const Text('LEAVE'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ],
+            ),
+          );
+          if (shouldPop == true) {
+            print('⏸️ User chose to leave run - GPS continues in background');
+            return true;
+          }
+          return false; // Stay on GPS screen
         }
-        return true;
+        return true; // Allow navigation if no active run
       },
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Outdoor Run Tracker'),
           backgroundColor: theme.scaffoldBackgroundColor,
           elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.my_location),
+              tooltip: 'Refresh Location',
+              onPressed: () async {
+                // Show loading indicator
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Getting your location...')),
+                );
+
+                // Refresh location
+                await _initializeMapLocation();
+
+                // Center map on new location
+                if (_currentLocationLatLng != null) {
+                  _mapController.move(_currentLocationLatLng!, 15);
+                }
+
+                // Show success message
+                if (_currentLocationLatLng != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Location updated: ${_currentLocationLatLng!.latitude.toStringAsFixed(4)}, ${_currentLocationLatLng!.longitude.toStringAsFixed(4)}'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
         ),
         body: Center(
           child: Padding(
@@ -370,6 +569,21 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
                   letterSpacing: 2,
                 ),
               ),
+              
+              // Navigation hint for active runs
+              if (_currentState == RunningState.running || _currentState == RunningState.paused)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    'Tap run button to return to this screen anytime',
+                    style: theme.textTheme.bodySmall!.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              
               const SizedBox(height: 40),
 
               // Time Elapsed (Main Metric)
@@ -425,50 +639,97 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
 
               // Map with OpenStreetMap (free, no API key needed)
               Expanded(
-                child: FlutterMap(
-                  options: MapOptions(
-                    initialCenter: _currentLocationLatLng ?? const LatLng(0, 0),
-                    initialZoom: 15,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.dividerColor),
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.fittrack.app',
-                    ),
-                    if (_routeCoordinates.isNotEmpty)
-                      PolylineLayer(
-                        polylines: [
-                          Polyline(
-                            points: _routeCoordinates,
-                            color: Theme.of(context).colorScheme.primary,
-                            strokeWidth: 5,
-                          ),
-                        ],
-                      ),
-                    if (_currentLocationLatLng != null)
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: _currentLocationLatLng!,
-                            width: 40,
-                            height: 40,
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.primary,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 2),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: _currentLocationLatLng == null
+                        ? Container(
+                            color: theme.cardColor,
+                            child: const Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'Finding your location...',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Make sure location services are enabled',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
                             ),
+                          )
+                        : FlutterMap(
+                            mapController: _mapController,
+                            options: MapOptions(
+                              initialCenter: _currentLocationLatLng ?? const LatLng(40.7128, -74.0060), // Default to NYC
+                              initialZoom: 15,
+                              minZoom: 3,
+                              maxZoom: 18,
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.fittrack.app',
+                              ),
+                              if (_routeCoordinates.isNotEmpty)
+                                PolylineLayer(
+                                  polylines: [
+                                    Polyline(
+                                      points: _routeCoordinates,
+                                      color: Theme.of(context).colorScheme.primary,
+                                      strokeWidth: 5,
+                                    ),
+                                  ],
+                                ),
+                              if (_currentLocationLatLng != null)
+                                MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      point: _currentLocationLatLng!,
+                                      width: 40,
+                                      height: 40,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.white, width: 3),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black26,
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.my_location,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
                           ),
-                        ],
-                      ),
-                  ],
+                  ),
                 ),
               ),
 

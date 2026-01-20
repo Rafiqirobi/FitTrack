@@ -2,6 +2,7 @@ import 'package:FitTrack/helpers/session_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? initialEmail;
@@ -17,12 +18,16 @@ class _LoginScreenState extends State<LoginScreen> {
   late TextEditingController _emailController;
   String email = '', password = '';
   bool _isLoading = false;
+  bool _isBiometricAvailable = false;
+  bool _isBiometricEnabled = false;
+  final BiometricService _biometricService = BiometricService();
 
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.initialEmail ?? '');
     email = widget.initialEmail ?? '';
+    _checkBiometricAvailability();
   }
 
   @override
@@ -39,6 +44,115 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
+  Future<void> _checkBiometricAvailability() async {
+    try {
+      final available = await _biometricService.isBiometricAvailable();
+      final enabled = await _biometricService.isBiometricLoginEnabled();
+      setState(() {
+        _isBiometricAvailable = available;
+        _isBiometricEnabled = enabled;
+      });
+    } catch (e) {
+      print('Error checking biometric availability: $e');
+    }
+  }
+
+  Future<void> _biometricLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = await _biometricService.biometricLogin();
+      if (user != null) {
+        print('Biometric login succeeded for user: ${user.uid}');
+        await SessionManager.saveUserSession(isLoggedIn: true, uid: user.uid);
+
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushReplacementNamed(context, '/navBottomBar');
+          });
+
+          Future.microtask(() {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Biometric login successful!')),
+            );
+          });
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Biometric authentication failed')),
+          );
+        }
+      }
+    } catch (e) {
+      print('Biometric login error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Biometric login failed: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _showBiometricSetupDialog(String email) async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Enable Biometric Login'),
+          content: const Text(
+            'Would you like to enable fingerprint or face recognition for faster login next time?'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Navigate to main app
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  Navigator.pushReplacementNamed(context, '/navBottomBar');
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Login successful!')),
+                );
+              },
+              child: const Text('Skip'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                try {
+                  await _biometricService.setupBiometricLogin(email);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Biometric login enabled!')),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to enable biometric login: $e')),
+                    );
+                  }
+                }
+                // Navigate to main app
+                if (mounted) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    Navigator.pushReplacementNamed(context, '/navBottomBar');
+                  });
+                }
+              },
+              child: const Text('Enable'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
@@ -48,15 +162,24 @@ class _LoginScreenState extends State<LoginScreen> {
           print('Login succeeded for user: ${user.uid}');
           await SessionManager.saveUserSession(isLoggedIn: true, uid: user.uid);
 
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.pushReplacementNamed(context, '/navBottomBar');
-          });
+          // Check if biometric is available and offer to set it up
+          if (_isBiometricAvailable && !_isBiometricEnabled) {
+            if (mounted) {
+              _showBiometricSetupDialog(user.email!);
+            }
+          } else {
+            if (mounted) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.pushReplacementNamed(context, '/navBottomBar');
+              });
 
-          Future.microtask(() {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Login successful!')),
-            );
-          });
+              Future.microtask(() {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Login successful!')),
+                );
+              });
+            }
+          }
         } else {
           print('Login returned null user');
         }
@@ -187,6 +310,26 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 16),
+
+                          // Biometric Login Button (only show if available and enabled)
+                          if (_isBiometricAvailable && _isBiometricEnabled)
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton.icon(
+                                icon: const Icon(Icons.fingerprint),
+                                label: const Text('Sign In with Biometrics'),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Theme.of(context).primaryColor),
+                                  foregroundColor: Theme.of(context).primaryColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                onPressed: _biometricLogin,
+                              ),
+                            ),
                           const SizedBox(height: 24),
                           
                           // Register Link

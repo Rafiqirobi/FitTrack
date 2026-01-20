@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
 import '../helpers/session_manager.dart';
 import 'about_fittrack_screen.dart';
 import 'notification_settings_screen.dart';
@@ -19,11 +20,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _username = 'Loading...';
   String _email = 'Loading...';
   bool _isLoading = true;
+  bool _isBiometricAvailable = false;
+  bool _isBiometricEnabled = false;
+  final BiometricService _biometricService = BiometricService();
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _checkBiometricAvailability();
   }
 
   Future<void> _loadUserData() async {
@@ -47,6 +52,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _username = 'User';
         _email = 'No email';
       });
+    }
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    try {
+      final available = await _biometricService.isBiometricAvailable();
+      final enabled = await _biometricService.isBiometricLoginEnabled();
+      print('🔐 Biometric check - Available: $available, Enabled: $enabled');
+      setState(() {
+        _isBiometricAvailable = available;
+        _isBiometricEnabled = enabled;
+      });
+    } catch (e) {
+      print('❌ Error checking biometric availability: $e');
+    }
+  }
+
+  Future<void> _toggleBiometricLogin() async {
+    try {
+      if (_isBiometricEnabled) {
+        // Disable biometric login
+        await _biometricService.clearBiometricLogin();
+        setState(() {
+          _isBiometricEnabled = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Biometric login disabled')),
+          );
+        }
+      } else {
+        // Check if biometrics are available before trying to enable
+        if (!_isBiometricAvailable) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Biometric authentication not available on this device')),
+            );
+          }
+          return;
+        }
+
+        // Enable biometric login - authenticate first
+        final authenticated = await _biometricService.authenticateWithBiometrics();
+        if (authenticated) {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null && user.email != null) {
+            await _biometricService.setupBiometricLogin(user.email!);
+            setState(() {
+              _isBiometricEnabled = true;
+            });
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Biometric login enabled')),
+              );
+            }
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Biometric authentication failed - please try again')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('Error toggling biometric login: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -452,6 +528,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       );
                     }, context),
+                    _buildBiometricTile(context), // Always show for testing
                   ], context),
 
                   const SizedBox(height: 20),
@@ -647,6 +724,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Icons.arrow_forward_ios,
                 color: Colors.grey[400],
                 size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBiometricTile(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: _toggleBiometricLogin,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.fingerprint,
+                  color: Theme.of(context).primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Biometric Login',
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.headlineMedium?.color,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      _isBiometricAvailable
+                          ? 'Available: $_isBiometricAvailable | Enabled: $_isBiometricEnabled'
+                          : 'Not available on this device',
+                      style: TextStyle(
+                        color: _isBiometricAvailable ? Colors.grey[500] : Colors.red[400],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _isBiometricEnabled,
+                onChanged: _isBiometricAvailable ? (value) => _toggleBiometricLogin() : null,
+                activeColor: Theme.of(context).primaryColor,
               ),
             ],
           ),
