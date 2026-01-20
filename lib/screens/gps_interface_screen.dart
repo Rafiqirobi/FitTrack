@@ -126,8 +126,6 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
         (pos) {
           if (!mounted) return;
           
-          final newLatLng = LatLng(pos.latitude, pos.longitude);
-          
           if (_lastPosition != null) {
             final delta = Geolocator.distanceBetween(
               _lastPosition!.latitude,
@@ -276,8 +274,8 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
   }
 
   void _updatePolyline() {
+    // Rebuild is handled by the caller's setState to avoid nested setState calls.
     if (_routeCoordinates.isEmpty) return;
-    setState(() {});
   }
 
   // --- UI Builders ---

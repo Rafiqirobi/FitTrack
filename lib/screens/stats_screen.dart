@@ -959,7 +959,16 @@ class _StatsScreenState extends State<StatsScreen> {
     );
   }
 
-  // Widget to display individual activity
+/*************  ✨ Windsurf Command ⭐  *************/
+/// Widget to display individual activity
+///
+/// Takes in a [BuildContext], [Activity], [Color] primaryColor, [Color] cardColor, and [Color] textColor
+///
+/// Returns a [Widget] that displays the activity's information and icon based on its type
+///
+/// The widget displays the activity's title, description, and date
+/// *****  b4215186-680c-4666-bbfb-ae3eb564b26b  ******  // Widget to display individual activity
+
   Widget _buildActivityTile(BuildContext context, Activity activity, Color primaryColor, Color cardColor, Color textColor) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     

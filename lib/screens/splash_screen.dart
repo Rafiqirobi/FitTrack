@@ -77,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen>
     _startAnimations();
 
     // Navigate after delay
-    Future.delayed(const Duration(seconds: 3), () => _checkLogin());
+    Future.delayed(const Duration(seconds: 3), () => _navigate());
   }
 
   void _startAnimations() {
@@ -92,14 +92,20 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  Future<void> _checkLogin() async {
-    bool isLoggedIn = await SessionManager.getLoginStatus();
-    print('🚀 SplashScreen: Navigating to ${isLoggedIn ? '/navBottomBar' : '/login'}');
+  Future<void> _navigate() async {
+    bool isFirstTime = await SessionManager.isFirstTime();
     if (!mounted) return;
-    if (isLoggedIn) {
-      Navigator.pushReplacementNamed(context, '/navBottomBar');
+
+    if (isFirstTime) {
+      Navigator.pushReplacementNamed(context, '/about');
     } else {
-      Navigator.pushReplacementNamed(context, '/login');
+      bool isLoggedIn = await SessionManager.getLoginStatus();
+      print('🚀 SplashScreen: Navigating to ${isLoggedIn ? '/navBottomBar' : '/login'}');
+      if (isLoggedIn) {
+        Navigator.pushReplacementNamed(context, '/navBottomBar');
+      } else {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     }
   }
 

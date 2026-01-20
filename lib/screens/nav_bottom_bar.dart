@@ -3,7 +3,7 @@ import 'package:FitTrack/screens/home_screen.dart';
 import 'package:FitTrack/screens/profile_screen.dart';
 import 'package:FitTrack/screens/browse_screen.dart';
 import 'package:FitTrack/screens/stats_screen.dart';
-import 'package:FitTrack/screens/run_history_screen.dart';
+import 'package:FitTrack/screens/workout_history_screen.dart';
 import 'package:FitTrack/widgets/running_active_banner.dart'; // Running active indicator
 // Note: Removed dependency on AnimatedBottomBarItem since the design is now custom built.
 
@@ -38,7 +38,7 @@ class _NavBottomBarState extends State<NavBottomBar> {
     _pages = [
       HomeScreen(onToggleTheme: widget.onToggleTheme),
       BrowseScreen(onToggleTheme: widget.onToggleTheme),
-      const RunHistoryScreen(),
+      const WorkoutHistoryScreen(),
       StatsScreen(onToggleTheme: widget.onToggleTheme),
       ProfileScreen(onToggleTheme: widget.onToggleTheme),
     ];

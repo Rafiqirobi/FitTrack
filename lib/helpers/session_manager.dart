@@ -32,4 +32,14 @@ class SessionManager {
     await prefs.setBool('isLoggedIn', false);
     await prefs.remove('uid');
   }
+
+  // Check if it's the first time the app is launched
+  static Future<bool> isFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool isFirstTime = prefs.getBool('isFirstTime') ?? true;
+    if (isFirstTime) {
+      await prefs.setBool('isFirstTime', false);
+    }
+    return isFirstTime;
+  }
 }

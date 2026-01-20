@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/notification_service.dart';
-import 'utils/firebase_seed.dart'; // Workout seeding
 
 // Screens
 import 'screens/splash_screen.dart';
@@ -17,18 +16,15 @@ import 'screens/favourites_screen.dart';
 import 'screens/nav_bottom_bar.dart'; // Main navigation
 import 'screens/notification_test_screen.dart';
 import 'screens/gps_interface_screen.dart';
+import 'screens/about_fittrack_screen.dart';
+import 'screens/workout_history_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   
-  // Seed workout data (run once to populate workouts).
-  // Run in background and do NOT block app startup (avoids hang when network is unavailable).
-  seedWorkoutData().then((_) {
-    print('✅ Background workout data seeding completed');
-  }).catchError((e) {
-    print('⚠️ Background workout data seeding failed: $e');
-  });
+  // Remove seeding from main - do it only on first app run or when needed
+  // seedWorkoutData() should be called from a dedicated screen/method when user navigates, not on startup
   
   runApp(const FitTrackApp());
 }
@@ -121,19 +117,20 @@ class _FitTrackAppState extends State<FitTrackApp> {
   }
 
   Future<void> _initializeApp() async {
-    // Workout data seeding completed - commenting out to prevent re-running
-    //await seedWorkoutData();
-    
-    // Load theme first before initializing other services
+    // Load theme first (quick local operation)
     await _loadTheme();
     
-    // Initialize notifications
-    final notificationService = NotificationService();
-    await notificationService.initializeNotifications();
-    await notificationService.requestPermissions();
-    
-    // Set up daily motivational quotes at 9 AM
-    await notificationService.scheduleMotivationalQuote();
+    // Lazy initialize notifications in background - don't block UI
+    Future.microtask(() async {
+      try {
+        final notificationService = NotificationService();
+        await notificationService.initializeNotifications();
+        await notificationService.requestPermissions();
+        await notificationService.scheduleMotivationalQuote();
+      } catch (e) {
+        print('⚠️ Notification init failed: $e');
+      }
+    });
   }
 
   Future<void> _loadTheme() async {
@@ -190,6 +187,7 @@ class _FitTrackAppState extends State<FitTrackApp> {
       initialRoute: '/', // Splash screen starts first
       routes: {
         '/': (context) => const SplashScreen(),
+        '/about': (context) => const AboutFitTrackScreen(),
         '/login': (context) {
           final email = ModalRoute.of(context)?.settings.arguments as String?;
           return LoginScreen(initialEmail: email);
@@ -202,7 +200,8 @@ class _FitTrackAppState extends State<FitTrackApp> {
         '/repsScreen': (context) => const RepsScreen(),
         '/favourites': (context) => const FavouritesScreen(),
         '/notificationTest': (context) => const NotificationTestScreen(),
-        '/gpsInterface': (context) => const GpsInterfaceScreen(), // <<< NEW ROUTE ADDED
+        '/gpsInterface': (context) => const GpsInterfaceScreen(),
+        '/workoutHistory': (context) => const WorkoutHistoryScreen(),
       },
     );
   }

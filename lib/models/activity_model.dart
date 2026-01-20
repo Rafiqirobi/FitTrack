@@ -28,17 +28,14 @@ class WorkoutActivity extends Activity {
   final String workoutCategory;
 
   WorkoutActivity({
-    required String id,
-    required DateTime timestamp,
+    required super.id,
+    required super.timestamp,
     required this.workoutName,
     required this.workoutCategory,
-    required int durationMinutes,
+    required super.durationMinutes,
     required this.caloriesBurned,
   }) : super(
-    id: id,
-    timestamp: timestamp,
     title: workoutName,
-    durationMinutes: durationMinutes,
     type: 'workout',
   );
 
@@ -58,14 +55,12 @@ class RunActivity extends Activity {
   final double? pace; // min/km
 
   RunActivity({
-    required String id,
-    required DateTime timestamp,
+    required super.id,
+    required super.timestamp,
     required int durationSeconds,
     required this.distanceKm,
   }) : pace = durationSeconds > 0 ? (durationSeconds / 60.0) / distanceKm : null,
        super(
-    id: id,
-    timestamp: timestamp,
     title: 'Running',
     durationMinutes: (durationSeconds / 60).round(),
     type: 'run',
