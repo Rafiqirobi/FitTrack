@@ -118,29 +118,19 @@ class _NavBottomBarState extends State<NavBottomBar>
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isSelected
-                ? primaryColor.withOpacity(0.08)
+                ? primaryColor.withOpacity(0.12)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(28), // More rounded pill shape
           ),
           child: AnimatedBuilder(
             animation: itemController,
             builder: (context, child) {
               return Transform.scale(
                 scale: scaleAnimation.value,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected
-                        ? primaryColor.withOpacity(0.15)
-                        : Colors.transparent,
-                  ),
-                  child: Icon(
-                    isSelected ? selectedIcon : unselectedIcon,
-                    color: colorAnimation.value,
-                    size: 26,
-                  ),
+                child: Icon(
+                  isSelected ? selectedIcon : unselectedIcon,
+                  color: colorAnimation.value,
+                  size: 26,
                 ),
               );
             },

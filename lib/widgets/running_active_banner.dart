@@ -21,9 +21,6 @@ class RunningActiveBanner extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        final theme = Theme.of(context);
-        final isDarkMode = theme.brightness == Brightness.dark;
-
         return GestureDetector(
           onTap: onTap,
           child: Container(

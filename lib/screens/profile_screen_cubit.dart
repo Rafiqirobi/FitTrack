@@ -240,7 +240,7 @@ class _ProfileScreenContent extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
+                color: const Color(0xFF4FACFE),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: Theme.of(context).cardColor,
@@ -438,7 +438,7 @@ class _ProfileScreenContent extends StatelessWidget {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
+                backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),

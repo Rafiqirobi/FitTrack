@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -43,12 +43,24 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
   // Map state
   final List<LatLng> _routeCoordinates = [];
   LatLng? _currentLocationLatLng;
+  bool _isFollowingUser = true; // Auto-follow user location
+  double _currentHeading = 0.0; // Current heading/direction in degrees
 
   @override
   void initState() {
     super.initState();
     _initializeMapLocation();
     _checkExistingSession();
+    
+    // Fallback: If location not found within 5 seconds, use default
+    Future.delayed(const Duration(seconds: 5), () {
+      if (_currentLocationLatLng == null && mounted) {
+        setState(() {
+          _currentLocationLatLng = const LatLng(40.7128, -74.0060); // NYC fallback
+        });
+        print('⏱️ Location timeout - using fallback location');
+      }
+    });
   }
 
   void _checkExistingSession() {
@@ -85,7 +97,7 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
       });
 
       print(
-          '✅ Synced with existing session: ${_timeElapsed}, ${runningSession.distanceKm.toStringAsFixed(2)} km');
+          '✅ Synced with existing session: $_timeElapsed, ${runningSession.distanceKm.toStringAsFixed(2)} km');
     }
   }
 
@@ -340,8 +352,17 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
           setState(() {
             _routeCoordinates.add(newLatLng);
             _currentLocationLatLng = newLatLng;
+            // Update heading for arrow rotation (if available)
+            if (pos.heading >= 0) {
+              _currentHeading = pos.heading;
+            }
             _updatePolyline();
           });
+
+          // Auto-center map on user location if following is enabled
+          if (_isFollowingUser && _currentState == RunningState.running) {
+            _mapController.move(newLatLng, _mapController.camera.zoom);
+          }
 
           _lastPosition = pos;
         },
@@ -505,42 +526,29 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
     stopLocationTracking();
     print('✅ Foreground task and location tracking stopped');
 
-    // Save run to Firestore (await completion)
-    await _saveRunToFirestore();
+    // Navigate to Run Summary Screen instead of saving directly
+    final routeCopy = List<LatLng>.from(_routeCoordinates);
+    final distanceCopy = _distanceMeters;
+    final durationCopy = _stopwatch.elapsed;
+    final paceCopy = _paceSeconds;
+    final startTimeCopy = DateTime.now().subtract(durationCopy);
 
-    // Show completion summary
-    final meters = _distanceMeters;
-    final elapsed = _stopwatch.elapsed;
-    final km = (meters / 1000).toStringAsFixed(2);
-    final time = _formatDuration(elapsed);
+    print('\n🏁 RUN COMPLETED - Navigating to summary');
+    print('⏱️ Time: ${_formatDuration(durationCopy)}');
+    print('📍 Distance: ${(distanceCopy / 1000).toStringAsFixed(2)} km');
+    print('${routeCopy.length} waypoints recorded\n');
 
-    print('\n🏁 RUN COMPLETED');
-    print('⏱️ Time: $time');
-    print('📍 Distance: $km km');
-    print('${_routeCoordinates.length} waypoints recorded\n');
-
-    // Show completion summary (safely)
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ Run saved — $km km in $time')),
+      Navigator.of(context).pushReplacementNamed(
+        '/runSummary',
+        arguments: {
+          'routeCoordinates': routeCopy,
+          'distanceMeters': distanceCopy,
+          'duration': durationCopy,
+          'paceSeconds': paceCopy,
+          'startTime': startTimeCopy,
+        },
       );
-    }
-
-    // Navigate after save is complete
-    if (mounted) {
-      // Try to pop normally first
-      if (Navigator.of(context).canPop()) {
-        print('✅ Can pop, navigating back...');
-        Navigator.of(context).pop();
-        print('✅ Successfully navigated back');
-      } else {
-        // If can't pop, navigate to main nav bar (not splash screen)
-        print('⚠️ Cannot pop - navigating to home screen');
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/navBottomBar', (route) => false);
-      }
-    } else {
-      print('⚠️ Context not mounted - cannot navigate');
     }
   }
 
@@ -637,46 +645,6 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
     );
   }
 
-  Widget _buildStopButton() {
-    if (_currentState == RunningState.running ||
-        _currentState == RunningState.paused) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 20.0),
-        child: GestureDetector(
-          onTap: _stopRun,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF512F), Color(0xFFDD2476)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.stop_rounded, color: Colors.white, size: 24),
-                SizedBox(width: 8),
-                Text(
-                  'STOP & SAVE',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-    return const SizedBox.shrink();
-  }
-  
   Widget _buildStatCard({
     required String value,
     required String label,
@@ -876,11 +844,24 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
                                       initialZoom: 16,
                                       minZoom: 3,
                                       maxZoom: 18,
+                                      onMapEvent: (event) {
+                                        // Disable auto-follow when user manually drags the map
+                                        if (event.source == MapEventSource.dragStart ||
+                                            event.source == MapEventSource.multiFingerGestureStart) {
+                                          if (_isFollowingUser) {
+                                            setState(() {
+                                              _isFollowingUser = false;
+                                            });
+                                          }
+                                        }
+                                      },
                                     ),
                                     children: [
                                       TileLayer(
-                                        urlTemplate:
-                                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                        urlTemplate: isDarkMode
+                                            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                                            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                        subdomains: const ['a', 'b', 'c'],
                                         userAgentPackageName: 'com.fittrack.app',
                                       ),
                                       if (_routeCoordinates.isNotEmpty)
@@ -900,20 +881,23 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
                                               point: _currentLocationLatLng!,
                                               width: 50,
                                               height: 50,
-                                              child: Container(
-                                                decoration: BoxDecoration(
-                                                  gradient: const LinearGradient(
-                                                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                                                    begin: Alignment.topLeft,
-                                                    end: Alignment.bottomRight,
+                                              child: Transform.rotate(
+                                                angle: _currentHeading * (math.pi / 180), // Convert degrees to radians
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    gradient: const LinearGradient(
+                                                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                                                      begin: Alignment.topLeft,
+                                                      end: Alignment.bottomRight,
+                                                    ),
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(color: Colors.white, width: 3),
                                                   ),
-                                                  shape: BoxShape.circle,
-                                                  border: Border.all(color: Colors.white, width: 3),
-                                                ),
-                                                child: const Icon(
-                                                  Icons.navigation_rounded,
-                                                  color: Colors.white,
-                                                  size: 24,
+                                                  child: const Icon(
+                                                    Icons.navigation_rounded,
+                                                    color: Colors.white,
+                                                    size: 24,
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -966,12 +950,15 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
                                 ),
                               ),
                             ),
-                            // Center on location button
+                            // Center on location button / Follow mode toggle
                             Positioned(
                               bottom: 12,
                               right: 12,
                               child: GestureDetector(
                                 onTap: () {
+                                  setState(() {
+                                    _isFollowingUser = !_isFollowingUser;
+                                  });
                                   if (_currentLocationLatLng != null) {
                                     _mapController.move(_currentLocationLatLng!, 16);
                                   }
@@ -979,12 +966,23 @@ class _GpsInterfaceScreenState extends State<GpsInterfaceScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: isDarkMode ? Colors.black.withOpacity(0.7) : Colors.white,
+                                    color: _isFollowingUser 
+                                        ? const Color(0xFF667EEA)
+                                        : (isDarkMode ? Colors.black.withOpacity(0.7) : Colors.white),
                                     borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
                                   child: Icon(
-                                    Icons.my_location,
-                                    color: const Color(0xFF667EEA),
+                                    _isFollowingUser ? Icons.gps_fixed : Icons.gps_not_fixed,
+                                    color: _isFollowingUser 
+                                        ? Colors.white
+                                        : const Color(0xFF667EEA),
                                     size: 22,
                                   ),
                                 ),

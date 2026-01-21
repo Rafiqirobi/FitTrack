@@ -37,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _todayMinutes = 0;
   int _todayWorkouts = 0;
   int _weeklyWorkouts = 0;
-  String? _userId;
+  List<bool> _weeklyActivityDays = [false, false, false, false, false, false, false]; // Mon-Sun
   StreamSubscription<QuerySnapshot>? _workoutStatsSubscription;
 
   // Goals state
@@ -62,12 +62,52 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late List<Animation<double>> _categoryFadeAnimations;
   late List<Animation<Offset>> _categorySlideAnimations;
 
+  // Check icon animation (looping pulse + rotation)
+  AnimationController? _checkIconController;
+  Animation<double>? _checkIconScaleAnimation;
+  Animation<double>? _checkIconRotateAnimation;
+
+  // Fire emoji animation (flickering effect)
+  AnimationController? _fireController;
+  Animation<double>? _fireScaleAnimation;
+  Animation<double>? _fireOpacityAnimation;
+
   void _loadFavoriteWorkouts() {
-    setState(() {
-      _loadingFavoriteWorkouts = false;
-      _favoriteWorkouts = [];
-      _totalFavoriteCount = 0;
-    });
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() {
+        _loadingFavoriteWorkouts = false;
+        _favoriteWorkouts = [];
+        _totalFavoriteCount = 0;
+      });
+      return;
+    }
+
+    // Cancel existing subscription if any
+    _favoritesSubscription?.cancel();
+
+    // Listen to favorites from Firestore using the correct path
+    _favoritesSubscription = _firestoreService.getFavoriteWorkoutsForCurrentUser().listen(
+      (workouts) {
+        if (mounted) {
+          setState(() {
+            _favoriteWorkouts = workouts.take(3).toList(); // Show only first 3
+            _totalFavoriteCount = workouts.length;
+            _loadingFavoriteWorkouts = false;
+          });
+        }
+      },
+      onError: (error) {
+        print('Error loading favorite workouts: $error');
+        if (mounted) {
+          setState(() {
+            _loadingFavoriteWorkouts = false;
+            _favoriteWorkouts = [];
+            _totalFavoriteCount = 0;
+          });
+        }
+      },
+    );
   }
 
   Future<void> _loadUserDisplayName() async {
@@ -163,6 +203,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         print('⚠️ Error querying runs: $e');
       }
 
+      // Calculate weekly activity days
+      await _calculateWeeklyActivity(user.uid);
+
       if (mounted) {
         setState(() {
           _todayWorkouts = todayCount;
@@ -177,8 +220,73 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _todayMinutes = 0;
           _todayWorkouts = 0;
           _weeklyWorkouts = 0;
+          _weeklyActivityDays = [false, false, false, false, false, false, false];
         });
       }
+    }
+  }
+
+  Future<void> _calculateWeeklyActivity(String uid) async {
+    try {
+      final now = DateTime.now();
+      // Get the start of the current week (Monday)
+      final weekStart = now.subtract(Duration(days: now.weekday - 1));
+      final weekStartDate = DateTime(weekStart.year, weekStart.month, weekStart.day);
+      
+      List<bool> activityDays = [false, false, false, false, false, false, false];
+      
+      // Check completed workouts for the week
+      final workoutsSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('completedWorkouts')
+          .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(weekStartDate))
+          .get();
+      
+      for (var doc in workoutsSnapshot.docs) {
+        final timestamp = doc.data()['timestamp'] as Timestamp?;
+        if (timestamp != null) {
+          final date = timestamp.toDate();
+          final dayIndex = date.weekday - 1; // Monday = 0, Sunday = 6
+          if (dayIndex >= 0 && dayIndex < 7) {
+            activityDays[dayIndex] = true;
+          }
+        }
+      }
+      
+      // Check runs for the week
+      final runsSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('runs')
+          .get();
+      
+      for (var doc in runsSnapshot.docs) {
+        final data = doc.data();
+        DateTime? runStartTime;
+        
+        final startTimeField = data['startTime'];
+        if (startTimeField is Timestamp) {
+          runStartTime = startTimeField.toDate();
+        } else if (startTimeField is String) {
+          runStartTime = DateTime.tryParse(startTimeField);
+        }
+        
+        if (runStartTime != null && runStartTime.isAfter(weekStartDate)) {
+          final dayIndex = runStartTime.weekday - 1;
+          if (dayIndex >= 0 && dayIndex < 7) {
+            activityDays[dayIndex] = true;
+          }
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _weeklyActivityDays = activityDays;
+        });
+      }
+    } catch (e) {
+      print('Error calculating weekly activity: $e');
     }
   }
 
@@ -335,6 +443,46 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             )))
         .toList();
 
+    // Check Icon Looping Animation (pulse + rotation)
+    _checkIconController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _checkIconScaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
+      CurvedAnimation(
+        parent: _checkIconController!,
+        curve: Curves.easeInOut,
+      ),
+    );
+    _checkIconRotateAnimation = Tween<double>(begin: 0.0, end: 0.1).animate(
+      CurvedAnimation(
+        parent: _checkIconController!,
+        curve: Curves.easeInOut,
+      ),
+    );
+    // Start looping animation
+    _checkIconController?.repeat(reverse: true);
+
+    // Fire Emoji Looping Animation (flickering effect)
+    _fireController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fireScaleAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(
+        parent: _fireController!,
+        curve: Curves.easeInOut,
+      ),
+    );
+    _fireOpacityAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _fireController!,
+        curve: Curves.easeInOut,
+      ),
+    );
+    // Start looping fire animation
+    _fireController?.repeat(reverse: true);
+
     // Load favorite workouts
     _loadFavoriteWorkouts();
 
@@ -394,6 +542,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _statsController.dispose();
     _quickStartController.dispose();
+    _checkIconController?.dispose();
+    _fireController?.dispose();
     for (var controller in _categoryControllers) {
       controller.dispose(); // Dispose each controller in the list
     }
@@ -486,7 +636,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       Expanded(
                         child: Text(
-                          'Hello, $firstName !',
+                          'Hello, $firstName!',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context)
@@ -573,18 +723,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.check_circle_rounded,
-                              color: Colors.green,
-                              size: 32,
-                            ),
-                          ),
+                          _checkIconController != null
+                              ? AnimatedBuilder(
+                                  animation: _checkIconController!,
+                                  builder: (context, child) {
+                                    return Transform.scale(
+                                      scale: _checkIconScaleAnimation?.value ?? 1.0,
+                                      child: Transform.rotate(
+                                        angle: _checkIconRotateAnimation?.value ?? 0.0,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withOpacity(0.2),
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.green.withOpacity(
+                                                    0.3 * (_checkIconScaleAnimation?.value ?? 1.0)),
+                                                blurRadius: 12 * (_checkIconScaleAnimation?.value ?? 1.0),
+                                                spreadRadius: 2 * (_checkIconScaleAnimation?.value ?? 1.0),
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Icon(
+                                            Icons.check_circle_rounded,
+                                            color: Colors.green,
+                                            size: 32,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Colors.green,
+                                    size: 32,
+                                  ),
+                                ),
                           const SizedBox(width: 20),
                           Expanded(
                             child: Column(
@@ -607,15 +789,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  _todayWorkouts == 0
-                                      ? "Let's start now! 💪"
-                                      : 'Keep up the great work! 🔥',
-                                  style: TextStyle(
-                                    color: Colors.grey[isDarkMode ? 400 : 700],
-                                    fontSize: 16,
-                                  ),
-                                ),
+                                _todayWorkouts == 0
+                                    ? Text(
+                                        "Let's start now! 💪",
+                                        style: TextStyle(
+                                          color: Colors.grey[isDarkMode ? 400 : 700],
+                                          fontSize: 16,
+                                        ),
+                                      )
+                                    : Row(
+                                        children: [
+                                          Text(
+                                            'Keep up the great work! ',
+                                            style: TextStyle(
+                                              color: Colors.grey[isDarkMode ? 400 : 700],
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          _fireController != null
+                                              ? AnimatedBuilder(
+                                                  animation: _fireController!,
+                                                  builder: (context, child) {
+                                                    return Transform.scale(
+                                                      scale: _fireScaleAnimation?.value ?? 1.0,
+                                                      child: Opacity(
+                                                        opacity: _fireOpacityAnimation?.value ?? 1.0,
+                                                        child: const Text(
+                                                          '🔥',
+                                                          style: TextStyle(fontSize: 18),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                )
+                                              : const Text(
+                                                  '🔥',
+                                                  style: TextStyle(fontSize: 18),
+                                                ),
+                                        ],
+                                      ),
                               ],
                             ),
                           ),
@@ -624,7 +836,110 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-                const SizedBox(height: 35), // Increased spacing
+                const SizedBox(height: 20),
+
+                // Weekly Activity Streak
+                FadeTransition(
+                  opacity: _statsFadeAnimation,
+                  child: SlideTransition(
+                    position: _statsSlideAnimation,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'This Week',
+                                style: TextStyle(
+                                  color: Theme.of(context).textTheme.headlineMedium?.color ??
+                                      (isDarkMode ? Colors.white : Colors.black87),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${_weeklyActivityDays.where((d) => d).length}/7 days',
+                                  style: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: List.generate(7, (index) {
+                              final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                              final isToday = DateTime.now().weekday - 1 == index;
+                              final isActive = _weeklyActivityDays[index];
+                              
+                              return Column(
+                                children: [
+                                  Text(
+                                    days[index],
+                                    style: TextStyle(
+                                      color: isToday
+                                          ? Theme.of(context).primaryColor
+                                          : Colors.grey[isDarkMode ? 500 : 600],
+                                      fontSize: 12,
+                                      fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: isActive
+                                          ? Colors.green
+                                          : (isToday
+                                              ? Theme.of(context).primaryColor.withOpacity(0.2)
+                                              : Colors.grey.withOpacity(0.15)),
+                                      shape: BoxShape.circle,
+                                      border: isToday && !isActive
+                                          ? Border.all(
+                                              color: Theme.of(context).primaryColor,
+                                              width: 2,
+                                            )
+                                          : null,
+                                    ),
+                                    child: isActive
+                                        ? const Icon(
+                                            Icons.check,
+                                            color: Colors.white,
+                                            size: 18,
+                                          )
+                                        : null,
+                                  ),
+                                ],
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 35),
 
                 // Motivational Quote Card (with Fade and Slide Animations)
                 FadeTransition(
@@ -774,15 +1089,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 children: [
                                   Icon(
                                     Icons.refresh,
-                                    color: Colors.grey[isDarkMode ? 500 : 600],
+                                    color: Colors.white.withOpacity(0.6),
                                     size: 16,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Tap for new inspiration',
                                     style: TextStyle(
-                                      color:
-                                          Colors.grey[isDarkMode ? 500 : 600],
+                                      color: Colors.white.withOpacity(0.6),
                                       fontSize: 12,
                                       fontWeight: FontWeight.w400,
                                     ),
@@ -1181,52 +1495,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  // --- Helper Widget for Stat Cards ---
-  Widget _buildStatCard(String title, String value, IconData icon,
-      Color backgroundColor, Color iconColor, bool isDarkMode) {
-    return Container(
-      height: 140, // Fixed height to match goal card
-      padding: const EdgeInsets.all(20), // More padding
-      decoration: BoxDecoration(
-        color: backgroundColor, // Background color passed in
-        borderRadius: BorderRadius.circular(20), // More rounded
-        border:
-            Border.all(color: Colors.grey.withOpacity(0.1)), // Subtle border
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment:
-            MainAxisAlignment.spaceBetween, // Distribute space evenly
-        children: [
-          Icon(icon,
-              color: iconColor, size: 28), // Icon with specified color and size
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.headlineMedium?.color ??
-                      (isDarkMode ? Colors.white : Colors.black),
-                  fontSize: 22, // Larger font
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.grey[isDarkMode ? 400 : 700],
-                  fontSize: 15,
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

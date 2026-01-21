@@ -117,11 +117,11 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 setState(() {});
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
+                backgroundColor: const Color(0xFF4FACFE),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('Save'),
+              child: const Text('Save', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -300,7 +300,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                   ElevatedButton(
                     onPressed: () => Navigator.pushNamed(context, '/workoutTimer', arguments: data),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
+                      backgroundColor: const Color(0xFF4FACFE),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(
@@ -311,13 +311,14 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.play_arrow, size: 24),
+                        Icon(Icons.play_arrow, size: 24, color: Colors.white),
                         SizedBox(width: 8),
                         Text(
                           'START WORKOUT NOW',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                       ],
@@ -366,11 +367,11 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           // Play Button Overlay
           Container(
             decoration: BoxDecoration(
-              color: primaryColor,
+              color: const Color(0xFF4FACFE),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: primaryColor.withOpacity(0.3),
+                  color: const Color(0xFF4FACFE).withOpacity(0.3),
                   blurRadius: 20,
                   spreadRadius: 5,
                 ),

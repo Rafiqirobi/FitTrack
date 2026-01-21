@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:latlong2/latlong.dart';
 import 'services/notification_service.dart';
+import 'utils/page_transitions.dart';
 
 // Screens
 import 'screens/splash_screen.dart';
@@ -18,6 +20,7 @@ import 'screens/notification_test_screen.dart';
 import 'screens/gps_interface_screen.dart';
 import 'screens/about_fittrack_screen.dart';
 import 'screens/workout_history_screen.dart';
+import 'screens/run_summary_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,22 +60,23 @@ class _FitTrackAppState extends State<FitTrackApp> {
     dividerColor: const Color(0xFFEEEEEE),
   );
 
-  // Dark theme configuration - Black background with White accents
+  // Dark theme configuration - Dark background with White accents
   final ThemeData _neonDarkTheme = ThemeData(
     brightness: Brightness.dark,
     primaryColor: Colors.white, // White primary
-    scaffoldBackgroundColor: const Color(0xFF0A0A0A), // Near black
+    scaffoldBackgroundColor: const Color(0xFF121212), // Dark grey-black
     colorScheme: const ColorScheme.dark(
       primary: Colors.white, // White primary
       secondary: Color(0xFFE0E0E0), // Light grey
-      surface: Color(0xFF121212), // Slightly lighter black
-      background: Color(0xFF0A0A0A), // Near black
+      surface: Color(0xFF1E1E1E), // Slightly lighter dark surface
+      background: Color(0xFF121212), // Dark grey-black
       error: Color(0xFFE53935),
       onPrimary: Colors.black,
       tertiary: Color(0xFFBDBDBD), // Medium grey
       onSecondary: Colors.black,
       onSurface: Colors.white,
     ),
+    cardColor: const Color(0xFF1E1E1E), // Dark card color
   );
   ThemeMode _themeMode = ThemeMode.system;
 
@@ -185,23 +189,96 @@ class _FitTrackAppState extends State<FitTrackApp> {
       theme: lightTheme,
       darkTheme: darkTheme,
       initialRoute: '/', // Splash screen starts first
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/about': (context) => const AboutFitTrackScreen(),
-        '/login': (context) {
-          final email = ModalRoute.of(context)?.settings.arguments as String?;
-          return LoginScreen(initialEmail: email);
-        },
-        '/register': (context) => const RegisterScreen(),
-        '/navBottomBar': (context) => NavBottomBar(onToggleTheme: _toggleTheme),
-        '/workoutDetail': (context) => const WorkoutDetailScreen(),
-        '/browse': (context) => const BrowseScreen(),
-        '/workoutTimer': (context) => const WorkoutTimerScreen(),
-        '/repsScreen': (context) => const RepsScreen(),
-        '/favourites': (context) => const FavouritesScreen(),
-        '/notificationTest': (context) => const NotificationTestScreen(),
-        '/gpsInterface': (context) => const GpsInterfaceScreen(),
-        '/workoutHistory': (context) => const WorkoutHistoryScreen(),
+      onGenerateRoute: (settings) {
+        // Define all routes with custom transitions
+        switch (settings.name) {
+          case '/':
+            return FadePageRoute(page: const SplashScreen(), settings: settings);
+          case '/about':
+            return SlidePageRoute(
+              page: const AboutFitTrackScreen(),
+              direction: SlideDirection.up,
+              settings: settings,
+            );
+          case '/login':
+            final email = settings.arguments as String?;
+            return FadePageRoute(page: LoginScreen(initialEmail: email), settings: settings);
+          case '/register':
+            return SlidePageRoute(
+              page: const RegisterScreen(),
+              direction: SlideDirection.right,
+              settings: settings,
+            );
+          case '/navBottomBar':
+            return FadePageRoute(
+              page: NavBottomBar(onToggleTheme: _toggleTheme),
+              settings: settings,
+            );
+          case '/workoutDetail':
+            return SlidePageRoute(
+              page: const WorkoutDetailScreen(),
+              direction: SlideDirection.up,
+              settings: settings,
+            );
+          case '/browse':
+            return SlidePageRoute(
+              page: const BrowseScreen(),
+              direction: SlideDirection.right,
+              settings: settings,
+            );
+          case '/workoutTimer':
+            return SlidePageRoute(
+              page: const WorkoutTimerScreen(),
+              direction: SlideDirection.up,
+              settings: settings,
+            );
+          case '/repsScreen':
+            return SlidePageRoute(
+              page: const RepsScreen(),
+              direction: SlideDirection.right,
+              settings: settings,
+            );
+          case '/favourites':
+            return SlidePageRoute(
+              page: const FavouritesScreen(),
+              direction: SlideDirection.right,
+              settings: settings,
+            );
+          case '/notificationTest':
+            return SlidePageRoute(
+              page: const NotificationTestScreen(),
+              direction: SlideDirection.right,
+              settings: settings,
+            );
+          case '/gpsInterface':
+            return SlidePageRoute(
+              page: const GpsInterfaceScreen(),
+              direction: SlideDirection.up,
+              settings: settings,
+            );
+          case '/workoutHistory':
+            return SlidePageRoute(
+              page: const WorkoutHistoryScreen(),
+              direction: SlideDirection.right,
+              settings: settings,
+            );
+          case '/runSummary':
+            final args = settings.arguments as Map<String, dynamic>;
+            final routeCoords = (args['routeCoordinates'] as List).cast<LatLng>();
+            return SlidePageRoute(
+              page: RunSummaryScreen(
+                routeCoordinates: routeCoords,
+                distanceMeters: args['distanceMeters'] as double,
+                duration: args['duration'] as Duration,
+                paceSeconds: args['paceSeconds'] as int,
+                startTime: args['startTime'] as DateTime,
+              ),
+              direction: SlideDirection.up,
+              settings: settings,
+            );
+          default:
+            return FadePageRoute(page: const SplashScreen(), settings: settings);
+        }
       },
     );
   }

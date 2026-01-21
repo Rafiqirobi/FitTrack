@@ -1084,8 +1084,6 @@ class _StatsScreenState extends State<StatsScreen> {
 /// *****  b4215186-680c-4666-bbfb-ae3eb564b26b  ******  // Widget to display individual activity
 
   Widget _buildActivityTile(BuildContext context, Activity activity, Color primaryColor, Color cardColor, Color textColor) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
     // Determine icon and color based on activity type
     IconData activityIcon;
     Color activityColor;

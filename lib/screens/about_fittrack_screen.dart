@@ -294,10 +294,10 @@ class AboutFitTrackScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushReplacementNamed(context, '/login');
                   },
-                  icon: const Icon(Icons.arrow_forward),
-                  label: const Text('Get Started'),
+                  icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                  label: const Text('Get Started', style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.primaryColor,
+                    backgroundColor: const Color(0xFF4FACFE),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

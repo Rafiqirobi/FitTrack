@@ -159,6 +159,12 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
       });
       _startTimer();
     } else {
+      // Check if this was the last step
+      if (currentStepIndex >= steps.length - 1) {
+        // All exercises completed or skipped, go back
+        Navigator.pop(context);
+        return;
+      }
       // Move to next exercise
       setState(() {
         currentStepIndex++;
@@ -378,14 +384,14 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
+                      backgroundColor: const Color(0xFF4FACFE),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                     ),
                     child: const Text(
                       'FINISH',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
                 ],
@@ -508,14 +514,14 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                     child: ElevatedButton(
                       onPressed: isLastStep ? _finishWorkout : _startExercise,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
+                        backgroundColor: const Color(0xFF4FACFE),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: Text(
                         isLastStep ? 'FINISH WORKOUT' : 'START',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),
                   ),
@@ -673,7 +679,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                       child: ElevatedButton(
                         onPressed: _togglePause,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
+                          backgroundColor: const Color(0xFF4FACFE),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -681,11 +687,11 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen>
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(isPaused ? Icons.play_arrow : Icons.pause),
+                            Icon(isPaused ? Icons.play_arrow : Icons.pause, color: Colors.white),
                             const SizedBox(width: 8),
                             Text(
                               isPaused ? 'RESUME' : 'PAUSE',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                           ],
                         ),

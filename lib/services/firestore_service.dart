@@ -87,14 +87,14 @@ class FirestoreService {
       throw Exception("User not logged in. Cannot toggle favorite status.");
     }
 
-    final favoriteDoc = _db.collection('user_favorites').doc('${userId}_$workoutId');
+    // Use users/{userId}/favorites path to match Firestore rules
+    final favoriteDoc = _db.collection('users').doc(userId).collection('favorites').doc(workoutId);
     final docSnapshot = await favoriteDoc.get();
 
     if (docSnapshot.exists) {
       await favoriteDoc.delete();
     } else {
       await favoriteDoc.set({
-        'userId': userId,
         'workoutId': workoutId,
         'timestamp': FieldValue.serverTimestamp(),
       });
@@ -107,7 +107,8 @@ class FirestoreService {
       return false;
     }
 
-    final favoriteDoc = _db.collection('user_favorites').doc('${userId}_$workoutId');
+    // Use users/{userId}/favorites path to match Firestore rules
+    final favoriteDoc = _db.collection('users').doc(userId).collection('favorites').doc(workoutId);
     final docSnapshot = await favoriteDoc.get();
     return docSnapshot.exists;
   }
@@ -118,7 +119,8 @@ class FirestoreService {
       return Stream.value([]);
     }
 
-    return _db.collection('user_favorites').where('userId', isEqualTo: userId).snapshots().asyncMap((favoritesSnapshot) async {
+    // Use users/{userId}/favorites path to match Firestore rules
+    return _db.collection('users').doc(userId).collection('favorites').snapshots().asyncMap((favoritesSnapshot) async {
       if (favoritesSnapshot.docs.isEmpty) {
         return <Workout>[];
       }

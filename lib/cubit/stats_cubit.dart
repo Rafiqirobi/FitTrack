@@ -175,8 +175,8 @@ class StatsCubit extends Cubit<StatsState> {
       totalMinutes: totalMinutes,
       weeklyWorkouts: weeklyWorkouts,
       allCompletedWorkouts: workouts,
-      currentRank: rankResult['current'] as RankData?,
-      nextRank: rankResult['next'] as RankData?,
+      currentRank: rankResult['current'],
+      nextRank: rankResult['next'],
       allActivities: _buildActivitiesList(workouts, state.allRuns),
     ));
   }
@@ -233,8 +233,8 @@ class StatsCubit extends Cubit<StatsState> {
       runCaloriesBurned: runCalories,
       weeklyRuns: weeklyRuns,
       allRuns: runs,
-      currentRank: rankResult['current'] as RankData?,
-      nextRank: rankResult['next'] as RankData?,
+      currentRank: rankResult['current'],
+      nextRank: rankResult['next'],
       allActivities: _buildActivitiesList(state.allCompletedWorkouts, runs),
     ));
   }

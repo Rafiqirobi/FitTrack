@@ -8,6 +8,7 @@ class RunRoute {
   final DateTime? endTime;
   final double totalDistanceMeters;
   final int durationSeconds;
+  final String? caption; // Optional caption/note for the run
 
   RunRoute({
     required this.id,
@@ -16,6 +17,7 @@ class RunRoute {
     this.endTime,
     required this.totalDistanceMeters,
     required this.durationSeconds,
+    this.caption,
   });
 
   // Convert to map for Firestore
@@ -32,6 +34,7 @@ class RunRoute {
       'endTime': endTime != null ? Timestamp.fromDate(endTime!) : null,
       'totalDistanceMeters': totalDistanceMeters,
       'durationSeconds': durationSeconds,
+      'caption': caption,
     };
   }
 
@@ -63,6 +66,28 @@ class RunRoute {
       totalDistanceMeters:
           (data['totalDistanceMeters'] as num?)?.toDouble() ?? 0.0,
       durationSeconds: (data['durationSeconds'] as num?)?.toInt() ?? 0,
+      caption: data['caption'] as String?,
+    );
+  }
+
+  // CopyWith method for updating fields
+  RunRoute copyWith({
+    String? id,
+    List<LatLng>? coordinates,
+    DateTime? startTime,
+    DateTime? endTime,
+    double? totalDistanceMeters,
+    int? durationSeconds,
+    String? caption,
+  }) {
+    return RunRoute(
+      id: id ?? this.id,
+      coordinates: coordinates ?? this.coordinates,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      totalDistanceMeters: totalDistanceMeters ?? this.totalDistanceMeters,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
+      caption: caption ?? this.caption,
     );
   }
 }
