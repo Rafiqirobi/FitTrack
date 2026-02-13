@@ -26,9 +26,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // Remove seeding from main - do it only on first app run or when needed
-  // seedWorkoutData() should be called from a dedicated screen/method when user navigates, not on startup
-
   runApp(const FitTrackApp());
 }
 
